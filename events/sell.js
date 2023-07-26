@@ -3,6 +3,8 @@ const Decimal = require("decimal.js-light");
 const client = require("..");
 const Account = require("../structs/Account.js");
 
+const account = new Account();
+
 client.emitter.on("sell", async (ticker, amount, share_price, order_type, order_type_details) => {
   const auditChannel = client.channels.cache.get(process.env.TRADING_CHANNEL_ID);
 
