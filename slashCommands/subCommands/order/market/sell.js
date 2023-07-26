@@ -8,11 +8,9 @@ module.exports = {
   run: async (client, interaction) => {
     const ticker = interaction.options.getString("ticker");
     const amount = interaction.options.getInteger("amount");
-    const collar = interaction.options.getNumber("collar_percentage") ?? 5;
 
     const order_type_details = {
-      order_transaction_type: "SELL",
-      collar_percentage: collar,
+      order_transaction_type: "SELL"
     };
 
     const stocks = new Stocks(client);
@@ -30,7 +28,6 @@ module.exports = {
         { name: "Share(s)", value: amount.toString(), inline: true },
         { name: "Price Per Share", value: account.formatCurrency(share_price), inline: true },
         { name: "Total", value: account.formatCurrency(new Decimal(share_price).mul(amount)), inline: true },
-        { name: "Collar", value: `${collar}%`, inline: true },
         { name: "Order Type", value: "MARKET", inline: true },
         { name: "Transaction Type", value: "SELL", inline: true },
       )

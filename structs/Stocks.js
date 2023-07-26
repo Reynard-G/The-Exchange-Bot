@@ -34,7 +34,7 @@ class Stocks {
       throw new InsufficientFundsError(discord_id, total_price, balance);
     }
 
-    client.emitter.emit("buy", discord_id, ticker.toUpperCase(), amount, order_type, order_type_details);
+    client.emitter.emit("buy", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
 
     return await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, fee, order_type, order_type_details);
   }
@@ -56,13 +56,14 @@ class Stocks {
     }
 
     // Check if account has enough shares to sell
+    const price_per_share = stock.price;
     const shares = await this.account.portfolio(discord_id);
     const ticker_shares = shares.find(share => share.ticker === ticker.toUpperCase());
     if (!ticker_shares || parseInt(ticker_shares.total_shares) < amount) {
       throw new InsufficientFundsError(discord_id, amount, shares[ticker.toUpperCase()] || 0);
     }
 
-    client.emitter.emit("sell", discord_id, ticker.toUpperCase(), amount, order_type, order_type_details);
+    client.emitter.emit("sell", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
 
     return await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, 0, order_type, order_type_details);
   }
@@ -71,57 +72,26 @@ class Stocks {
     const original_account_id = await this.account.databaseID(discord_id);
     let leftoverAmount = new Decimal(amount);
 
-    let orders;
-    switch (order_type) {
-      case "LIMIT":
-        orders = await client.query(`
-          SELECT *
-          FROM orders
-          WHERE ticker = ?
-            AND order_transaction_type = ?
-            AND active = 1
-            AND remaining_amount > 0
-            AND (
-              (order_type = 'LIMIT' AND limit_price >= ?)
-              OR
-              (order_type = 'MARKET'
-                AND (
-                  (price_per_share * (1 + (collar_percentage / 100))) <= ?
-                  OR
-                  (price_per_share * (1 - (collar_percentage / 100))) >= ?
-                )
-              )
-            )
-            AND account_id <> ?
-          ORDER BY price_per_share ASC, created_at ASC`,
-          [ticker, order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY", order_type_details.limit_price, order_type_details.limit_price, order_type_details.limit_price, original_account_id]
-        );
-        break;
-      case "MARKET":
-        // Price collar for market orders above or below the current price
-        orders = await client.query(`
-          SELECT *
-          FROM orders
-          WHERE ticker = ?
-            AND order_transaction_type = ?
-            AND active = 1
-            AND remaining_amount > 0
-            AND (
-              (price_per_share <= (1 + (? / 100)) * ?)
-              OR
-              (price_per_share >= (1 - (? / 100)) * ?)
-            )
-            AND (
-              (order_type = 'LIMIT' AND limit_price >= ?)
-              OR
-              (order_type = 'MARKET' AND collar_percentage >= ?)
-            )
-            AND account_id <> ?
-          ORDER BY price_per_share ASC, created_at ASC`,
-          [ticker, order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY", order_type_details.collar_percentage, price_per_share, order_type_details.collar_percentage, price_per_share, price_per_share, order_type_details.collar_percentage, original_account_id]
-        );
-        break;
+    let queryParams;
+    if (order_type_details.limit_price) {
+      queryParams = [ticker, order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY", order_type_details.limit_price, original_account_id];
+    } else {
+      queryParams = [ticker, order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY", original_account_id];
     }
+
+    // Get all orders that match the order type and ticker
+    const orders = await client.query(`
+      SELECT *
+      FROM orders
+      WHERE ticker = ?
+        AND order_transaction_type = ?
+        AND active = 1
+        AND remaining_amount > 0
+        ${order_type_details.limit_price ? `AND price_per_share ${order_type_details.order_transaction_type === "BUY" ? "<=" : ">="} ?` : ''}
+        AND account_id != ?
+      ORDER BY price_per_share ${order_type_details.order_transaction_type === "BUY" ? "ASC" : "DESC"} , created_at ASC`,
+      queryParams
+    );
 
     for (const order of orders) {
       const { id, account_id, remaining_amount, price_per_share, ipo } = order;
@@ -187,9 +157,9 @@ class Stocks {
 
     // Create a new order if there is any leftover amount, else create a empty order
     await client.query(`
-      INSERT INTO orders (account_id, ticker, amount, price_per_share, fulfilled_amount, remaining_amount, order_transaction_type, order_type, limit_price, collar_percentage, active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [original_account_id, ticker, new Decimal(price_per_share).mul(amount).toNumber(), price_per_share, new Decimal(amount).minus(leftoverAmount).toNumber(), leftoverAmount.toNumber(), order_type_details.order_transaction_type, order_type, order_type_details.limit_price, order_type_details.collar_percentage, leftoverAmount.gt(0) ? 1 : 0]
+      INSERT INTO orders (account_id, ticker, amount, price_per_share, fulfilled_amount, remaining_amount, order_transaction_type, order_type, limit_price, active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [original_account_id, ticker, new Decimal(price_per_share).mul(amount).toNumber(), price_per_share, new Decimal(amount).minus(leftoverAmount).toNumber(), leftoverAmount.toNumber(), order_type_details.order_transaction_type, order_type, order_type_details.limit_price, leftoverAmount.gt(0) ? 1 : 0]
     );
 
     // Update the stock price

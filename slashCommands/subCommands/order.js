@@ -33,14 +33,6 @@ module.exports = {
               required: true,
               min_value: 1,
             },
-            {
-              name: "collar_percentage",
-              description: "The maximum percentage you are willing to pay for the stock. Default is 5%.",
-              type: ApplicationCommandOptionType.Number,
-              required: false,
-              min_value: 0,
-              max_value: 100,
-            },
           ],
         },
         {
@@ -63,14 +55,6 @@ module.exports = {
               required: true,
               min_value: 1,
             },
-            {
-              name: "collar_percentage",
-              description: "The minimum percentage you are willing to sell the stock for. Default is 5%.",
-              type: ApplicationCommandOptionType.Number,
-              required: false,
-              min_value: 0,
-              max_value: 100,
-            }
           ],
         },
       ],

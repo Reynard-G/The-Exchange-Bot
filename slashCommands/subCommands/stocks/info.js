@@ -14,10 +14,10 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle(`${stock.ticker} Stock Info`)
       .addFields(
-        { name: "Ticker", value: stock.ticker.toString(), inline: true },
-        { name: "Price", value: account.formatCurrency(stock.price), inline: true },
-        { name: "Volume", value: `${stock.available_shares}/${stock.outstanding_shares} (${stock.total_outstanding_shares} total)`, inline: true },
-        { name: "Frozen?", value: stock.frozen === 1 ? "Yes" : "No", inline: true },
+        { name: "Ticker", value: stock.ticker.toString() },
+        { name: "Price", value: account.formatCurrency(stock.price) },
+        { name: "Volume", value: `${stock.available_shares}/${stock.outstanding_shares} (${stock.total_outstanding_shares} total)` },
+        { name: "Frozen?", value: stock.frozen === 1 ? "Yes" : "No" },
       )
       .setColor("#BB8FCE")
       .setTimestamp()
