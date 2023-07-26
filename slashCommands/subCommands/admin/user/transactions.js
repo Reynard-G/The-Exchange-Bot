@@ -17,7 +17,7 @@ module.exports = {
 
     if (!transactions) {
       embed.setDescription("That user has no transactions.");
-      return interaction.reply({ embeds: [embed] });
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
     const pages = [];

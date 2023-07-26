@@ -19,7 +19,7 @@ module.exports = {
 
     if (!transactions) {
       embed.setDescription("You have no transactions.");
-      return interaction.reply({ embeds: [embed] });
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
     const pages = [];
