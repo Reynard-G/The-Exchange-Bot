@@ -47,7 +47,7 @@ class Account {
     `,
       [accountID]);
 
-    const balance = result[0].balance ?? 0;
+    const balance = result[0] ? result[0].balance : 0;
     return balance;
   }
 
