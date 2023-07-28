@@ -1,5 +1,6 @@
 const client = require("../index.js");
 const Decimal = require("decimal.js-light");
+const moment = require("moment");
 const Account = require("./Account.js");
 const { InvalidStockTickerError, FrozenStockError, FrozenUserError, InsufficientFundsError, InvalidSharesAmountError, ImageTooLargeError } = require("./Errors.js");
 
@@ -269,6 +270,33 @@ class Stocks {
     }
 
     await client.query("UPDATE tickers SET outstanding_shares = ? WHERE ticker = ?", [outstanding_shares, ticker]);
+  }
+
+  // method to get open, close, high, low prices for a ticker for a given date
+  async getOHLC(ticker, date) {
+  }
+
+  async dailyPercentageChange(ticker) {
+    const current_utc_date = moment.utc().format("YYYY-MM-DD");
+
+    const prices = await client.query(`
+      SELECT 
+        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND date = ?) AS open,
+        t.price AS current
+      FROM tickers t
+      JOIN historical_ticker_prices p ON t.id = p.ticker_id
+      WHERE t.ticker = ?
+      ORDER BY p.date DESC
+      LIMIT 1`,
+      [current_utc_date, ticker]
+    );
+
+    const { open, current } = prices[0];
+    const percentage_change = new Decimal(current).sub(open).div(open).mul(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toNumber();
+
+    console.log(open, current, percentage_change)
+
+    return percentage_change;
   }
 
   async setPrice(ticker, price) {

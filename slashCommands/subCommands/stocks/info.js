@@ -9,13 +9,16 @@ module.exports = {
     const ticker = interaction.options.getString("ticker");
     const stock = await stocks.ticker(ticker);
 
+    const percentage_change = await stocks.dailyPercentageChange(ticker);
+    const percentage_change_formatted = percentage_change > 0 ? `+${percentage_change}%` : `${percentage_change}%`;
+
     const account = new Account();
 
     const embed = new EmbedBuilder()
       .setTitle(`${stock.ticker} Stock Info`)
       .addFields(
         { name: "Ticker", value: stock.ticker.toString() },
-        { name: "Price", value: account.formatCurrency(stock.price) },
+        { name: "Price", value: `${account.formatCurrency(stock.price)} (${percentage_change_formatted})` },
         { name: "Volume", value: `${stock.available_shares}/${stock.outstanding_shares} (${stock.total_outstanding_shares} total)` },
         { name: "Frozen?", value: stock.frozen === 1 ? "Yes" : "No" },
       )
