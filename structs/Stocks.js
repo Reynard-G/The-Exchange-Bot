@@ -1,6 +1,6 @@
 const client = require("../index.js");
 const Decimal = require("decimal.js-light");
-const moment = require("moment");
+const moment = require("moment-timezone");
 const Account = require("./Account.js");
 const { InvalidStockTickerError, FrozenStockError, FrozenUserError, InsufficientFundsError, InvalidSharesAmountError, ImageTooLargeError } = require("./Errors.js");
 
@@ -277,24 +277,23 @@ class Stocks {
   }
 
   async dailyPercentageChange(ticker) {
-    const current_utc_date = moment.utc().format("YYYY-MM-DD");
+    // Get the midnight date in EST timezone
+    const midnight_date = moment().tz("America/New_York").startOf("day").unix();
 
     const prices = await client.query(`
       SELECT 
-        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND date = ?) AS open,
+        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) >= ? LIMIT 1) AS open,
         t.price AS current
       FROM tickers t
       JOIN historical_ticker_prices p ON t.id = p.ticker_id
       WHERE t.ticker = ?
       ORDER BY p.date DESC
       LIMIT 1`,
-      [current_utc_date, ticker]
+      [midnight_date, ticker]
     );
 
     const { open, current } = prices[0];
     const percentage_change = new Decimal(current).sub(open).div(open).mul(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toNumber();
-
-    console.log(open, current, percentage_change)
 
     return percentage_change;
   }

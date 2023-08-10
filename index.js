@@ -21,6 +21,7 @@ client.subCommands = new Collection();
 client.buttons = new Collection();
 
 client.emitter = new events.EventEmitter();
+client.emitter.setMaxListeners(15);
 
 module.exports = client;
 
