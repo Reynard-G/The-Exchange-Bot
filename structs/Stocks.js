@@ -191,7 +191,7 @@ class Stocks {
   }
 
   async companies() {
-    const companies = await client.query("SELECT ticker, company_name FROM tickers");
+    const companies = await client.query("SELECT ticker, company_name, frozen FROM tickers");
     return companies;
   }
 
