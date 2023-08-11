@@ -83,7 +83,8 @@ class Account {
 
     // Revert stock price changes
     const order = await this.order(orderID);
-    const newPrice = await this.stocks.updatedPrice(order.ticker, order.remaining_amount + order.fulfilled_amount, order.order_transaction_type);
+    const transactionType = order.order_transaction_type === "BUY" ? "SELL" : "BUY";
+    const newPrice = await this.stocks.updatedPrice(order.ticker, order.remaining_amount + order.fulfilled_amount, transactionType);
     await this.stocks.setPrice(ticker, newPrice);
 
     client.emitter.emit("orderCancelled", orderID);
