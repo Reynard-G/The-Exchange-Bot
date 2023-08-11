@@ -16,7 +16,7 @@ module.exports = {
       .setFields(
         companies.map(company => {
           return {
-            name: company.frozen === 1 ? `${company.company_name} (Frozen)` : company.company_name,
+            name: company.frozen === 1 ? `🧊 ${company.company_name}` : company.company_name,
             value: company.company_name,
             inline: true
           };
