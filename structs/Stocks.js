@@ -75,9 +75,9 @@ class Stocks {
 
     let queryParams;
     if (order_type_details.limit_price) {
-      queryParams = [ticker, order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY", order_type_details.limit_price, original_account_id];
+      queryParams = [ticker, order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY", order_type_details.limit_price, price_per_share, price_per_share, original_account_id];
     } else {
-      queryParams = [ticker, order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY", original_account_id];
+      queryParams = [ticker, order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY", price_per_share, price_per_share, original_account_id];
     }
 
     // Get all orders that match the order type and ticker
@@ -89,6 +89,12 @@ class Stocks {
         AND active = 1
         AND remaining_amount > 0
         ${order_type_details.limit_price ? `AND price_per_share ${order_type_details.order_transaction_type === "BUY" ? "<=" : ">="} ?` : ''}
+        AND IF(order_type = "LIMIT",
+              IF(order_transaction_type = "BUY",
+                limit_price >= ?,
+                limit_price <= ?),
+              1
+            )
         AND account_id != ?
       ORDER BY price_per_share ${order_type_details.order_transaction_type === "BUY" ? "ASC" : "DESC"} , created_at ASC`,
       queryParams
