@@ -22,6 +22,12 @@ class Account {
     return id.length > 0 ? id[0].discord_id : null;
   }
 
+  async username(discordID) {
+    const username = (await client.query("SELECT ign FROM accounts WHERE discord_id = ?",
+      [discordID]));
+    return username.length > 0 ? username[0].ign : null;
+  }
+
   async balance(discordID) {
     const accountID = await this.databaseID(discordID);
     const result = await client.query(`

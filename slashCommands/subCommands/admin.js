@@ -251,6 +251,21 @@ module.exports = {
             },
           ],
         },
+        {
+          name: "shareholders",
+          description: "View a stock's shareholders.",
+          type: ApplicationCommandOptionType.Subcommand,
+          cooldown: 3000,
+          options: [
+            {
+              name: "ticker",
+              description: "The ticker of the stock you want to view the shareholders of.",
+              type: ApplicationCommandOptionType.String,
+              required: true,
+              max_length: 5,
+            },
+          ],
+        },
       ],
     },
     {

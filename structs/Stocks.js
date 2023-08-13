@@ -312,6 +312,39 @@ class Stocks {
    * UTILITY FUNCTIONS
    */
 
+  async shareholders(ticker, exchange_discord_id) {
+    // Get shareholder through transactions, differentiate between CR and DR
+    const shareholders = await client.query(`
+      SELECT
+        SUM(CASE
+          WHEN ticker_transaction_type = "CR" THEN ticker_amount
+          WHEN ticker_transaction_type = "DR" THEN -ticker_amount
+          ELSE 0
+        END) AS total_shares,
+        account_id
+      FROM transactions
+      WHERE ticker = ?
+      GROUP BY account_id
+      ORDER BY total_shares DESC`,
+      [ticker]
+    );
+
+    // Return without The Exchange's account
+    const exchange_account_id = await this.account.databaseID(exchange_discord_id);
+    const filtered_shareholders = shareholders.filter(shareholder => shareholder.account_id !== exchange_account_id);
+
+    // Get the usernames & discord ids of the shareholders
+    const promises = filtered_shareholders.map(async (shareholder) => {
+      const { account_id, total_shares } = shareholder;
+      const discord_id = await this.account.discordID(account_id);
+      const username = await this.account.username(discord_id);
+      return { discord_id, username, shares: total_shares };
+    });
+
+    const results = await Promise.all(promises);
+    return results;
+  }
+
   async updatedPrice(amount, ticker, transaction_type) {
     const ticker_details = await this.ticker(ticker);
     const { price, total_outstanding_shares } = ticker_details;
