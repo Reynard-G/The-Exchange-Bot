@@ -358,7 +358,7 @@ class Stocks {
     const updated_price = transaction_type === "BUY" ? new Decimal(price).add(updated_difference).toNumber() : new Decimal(price).sub(updated_difference).toNumber();
 
     console.log(`Updated price for ${ticker} is ${updated_price}`);
-    return updated_price > 0 ? updated_price : 0;
+    return updated_price > 0 ? updated_price : 0.0001;
   }
 }
 
