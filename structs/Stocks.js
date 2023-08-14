@@ -1,10 +1,10 @@
 const client = require("../index.js");
+const Account = require("./Account.js");
 const Decimal = require("decimal.js-light");
 const moment = require("moment-timezone");
-const Account = require("./Account.js");
 const { InvalidStockTickerError, FrozenStockError, FrozenUserError, InsufficientFundsError, InvalidSharesAmountError, ImageTooLargeError } = require("./Errors.js");
 
-class Stocks {
+module.exports = class Stocks {
 
   constructor() {
     this.account = new Account();
@@ -361,5 +361,3 @@ class Stocks {
     return updated_price > 0 ? updated_price : 0.0001;
   }
 }
-
-module.exports = Stocks;
