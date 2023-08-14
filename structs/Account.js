@@ -1,7 +1,13 @@
 const client = require("../index.js");
+const Stocks = require("./Stocks.js");
 const { AlreadyRegisteredError } = require("./Errors.js");
 
 class Account {
+
+  constructor() {
+    this.stocks = new Stocks();
+  }
+
   async register(discordID, username) {
     const isRegistered = await this.isRegistered(discordID);
     if (isRegistered) throw new AlreadyRegisteredError(discordID);
@@ -80,6 +86,12 @@ class Account {
   async cancelOrder(orderID) {
     await client.query("UPDATE orders SET active = 0 WHERE id = ?",
       [orderID]);
+
+    // Revert stock price changes
+    const order = await this.order(orderID);
+    const transactionType = order.order_transaction_type === "BUY" ? "SELL" : "BUY";
+    const newPrice = await this.stocks.updatedPrice(order.ticker, order.remaining_amount + order.fulfilled_amount, transactionType);
+    await this.stocks.setPrice(ticker, newPrice);
 
     client.emitter.emit("orderCancelled", orderID);
   }
