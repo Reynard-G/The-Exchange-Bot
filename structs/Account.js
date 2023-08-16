@@ -108,7 +108,9 @@ module.exports = class Account {
           t.account_id = ?
           AND t.ticker IS NOT NULL
       GROUP BY 
-          t.account_id, t.ticker;
+          t.account_id, t.ticker
+      HAVING
+          total_shares > 0;
     `, [account_id]));
 
     return portfolio.length > 0 ? portfolio : [];
