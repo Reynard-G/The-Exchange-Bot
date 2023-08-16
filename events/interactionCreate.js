@@ -31,14 +31,7 @@ client.on("interactionCreate", async interaction => {
 	}
 
 	// Logging
-	const utcDateTime = new Date().toUTCString().substring(5);
-	if (subCommandGroup) {
-		console.log(`${utcDateTime} ${interaction.user.tag} (${interaction.user.id})`, slashCommand.name, subCommandGroup, subCommand);
-	} else if (subCommand) {
-		console.log(`${utcDateTime} ${interaction.user.tag} (${interaction.user.id})`, slashCommand.name, subCommand);
-	} else {
-		console.log(`${utcDateTime} ${interaction.user.tag} (${interaction.user.id})`, slashCommand.name);
-	}
+	client.logger.info(`${interaction.user.tag} (${interaction.user.id}) ${slashCommand.name} ${subCommandGroup || ''}${subCommand ? subCommand : ''}`);
 
 	try {
 		if (slashCommand.cooldown) {
@@ -89,44 +82,44 @@ client.on("interactionCreate", async interaction => {
 			}
 		} catch (error) {
 			if (error.name === "InvalidStockTickerError") {
-        console.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid stock ticker.`);
-        await interaction.reply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle("Invalid Stock Ticker")
-              .setDescription(`The stock ticker you've provided is invalid.`)
-              .setColor("Red")
-              .setTimestamp()
-              .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
-          ],
-          ephemeral: true
-        });
-      } else if (error.name === "FrozenStockError") {
-        console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a frozen stock.`);
-        await interaction.reply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle("Frozen Stock")
-              .setDescription(`The stock you've provided is currently **frozen**.`)
-              .setColor("Red")
-              .setTimestamp()
-              .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
-          ],
-          ephemeral: true
-        });
-      } else if (error.name === "FrozenUserError") {
-        console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a frozen user.`);
-        await interaction.reply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle("Frozen User")
-              .setDescription(`You're account is currently **frozen**.`)
-              .setColor("Red")
-              .setTimestamp()
-              .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
-          ],
-          ephemeral: true
-        });
+				console.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid stock ticker.`);
+				await interaction.reply({
+					embeds: [
+						new EmbedBuilder()
+							.setTitle("Invalid Stock Ticker")
+							.setDescription(`The stock ticker you've provided is invalid.`)
+							.setColor("Red")
+							.setTimestamp()
+							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
+					],
+					ephemeral: true
+				});
+			} else if (error.name === "FrozenStockError") {
+				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a frozen stock.`);
+				await interaction.reply({
+					embeds: [
+						new EmbedBuilder()
+							.setTitle("Frozen Stock")
+							.setDescription(`The stock you've provided is currently **frozen**.`)
+							.setColor("Red")
+							.setTimestamp()
+							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
+					],
+					ephemeral: true
+				});
+			} else if (error.name === "FrozenUserError") {
+				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a frozen user.`);
+				await interaction.reply({
+					embeds: [
+						new EmbedBuilder()
+							.setTitle("Frozen User")
+							.setDescription(`You're account is currently **frozen**.`)
+							.setColor("Red")
+							.setTimestamp()
+							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
+					],
+					ephemeral: true
+				});
 			} else if (error.name === "InsufficientPermissionsError") {
 				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a command without the required permissions.`);
 				await interaction.reply({
@@ -140,19 +133,19 @@ client.on("interactionCreate", async interaction => {
 					],
 					ephemeral: true
 				});
-      } else if (error.name === "InsufficientFundsError") {
-        console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to use a command without enough funds.`);
-        await interaction.reply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle("Insufficient Funds")
-              .setDescription(`You don't have enough funds to complete this transaction.`)
-              .setColor("Red")
-              .setTimestamp()
-              .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
-          ],
-          ephemeral: true
-        });
+			} else if (error.name === "InsufficientFundsError") {
+				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to use a command without enough funds.`);
+				await interaction.reply({
+					embeds: [
+						new EmbedBuilder()
+							.setTitle("Insufficient Funds")
+							.setDescription(`You don't have enough funds to complete this transaction.`)
+							.setColor("Red")
+							.setTimestamp()
+							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
+					],
+					ephemeral: true
+				});
 			} else if (error.name === "InvalidSharesAmountError") {
 				console.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid amount of shares.`);
 				await interaction.reply({
@@ -231,20 +224,20 @@ client.on("interactionCreate", async interaction => {
 					],
 					ephemeral: true
 				});
-      } else {
-        console.error(error);
-        await interaction.reply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle("Unexpected Error")
-              .setDescription(`An unexpected error occurred, please try again later.`)
-              .setColor("Red")
-              .setTimestamp()
-              .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
-          ],
-          ephemeral: true
-        });
-      }
+			} else {
+				console.error(error);
+				await interaction.reply({
+					embeds: [
+						new EmbedBuilder()
+							.setTitle("Unexpected Error")
+							.setDescription(`An unexpected error occurred, please try again later.`)
+							.setColor("Red")
+							.setTimestamp()
+							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
+					],
+					ephemeral: true
+				});
+			}
 		}
 	} catch (error) {
 		console.error(error);

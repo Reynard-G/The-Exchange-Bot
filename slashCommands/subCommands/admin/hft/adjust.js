@@ -7,6 +7,6 @@ module.exports = {
     const ticker = interaction.options.getString("ticker").toUpperCase();
     const newPPS = interaction.options.getNumber("new_price_per_share");
 
-
+    
   }
 };
