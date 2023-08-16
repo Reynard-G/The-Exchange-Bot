@@ -11,7 +11,7 @@ const client = new Client({
 	partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember, Partials.Reaction]
 });
 const winston = require('winston');
-const { combine, timestamp, printf, align } = winston.format;
+const { combine, timestamp, printf, align, errors } = winston.format;
 
 const events = require('events');
 const fs = require('fs');
@@ -28,6 +28,7 @@ client.emitter.setMaxListeners(15);
 client.logger = winston.createLogger({
 	level: 'info',
 	format: combine(
+		errors({ stack: true }),
 		timestamp({ format: 'YYYY-MM-DD hh:mm:ss.SSS A' }),
 		align(),
 		printf((info) => `[${info.timestamp}] ${info.level}: ${info.message}`)
@@ -35,6 +36,7 @@ client.logger = winston.createLogger({
 	transports: [
 		new winston.transports.Console(),
 		new winston.transports.File({ filename: 'combined.log' }),
+		new winston.transports.File({ filename: 'errors.log', level: 'error' })
 	],
 });
 

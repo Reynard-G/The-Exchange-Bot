@@ -1,0 +1,13 @@
+[2023-08-15 11:04:18.571 PM] error: 	tru is not defined
+[2023-08-15 11:05:54.839 PM] error: 	tru is not defined
+[2023-08-15 11:06:46.112 PM] error: 	tru is not defined
+[2023-08-15 11:08:09.944 PM] error: 	tru is not defined
+[2023-08-15 11:08:41.012 PM] error: 	{}
+[2023-08-15 11:09:22.469 PM] error: 	tru is not defined
+[2023-08-15 11:11:50.327 PM] error: 	tru is not defined
+[2023-08-15 11:12:16.954 PM] error: 	tru is not defined
+[2023-08-15 11:14:52.213 PM] error: 	tru is not defined
+[2023-08-15 11:16:00.253 PM] error: 	ReferenceError: tru is not defined
+    at Object.run (C:\Users\reyna\Desktop\Archives\Projects\The Exchange Bot\slashCommands\subCommands\stocks\countdown.js:21:18)
+    at Client.<anonymous> (C:\Users\reyna\Desktop\Archives\Projects\The Exchange Bot\events\interactionCreate.js:79:28)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)

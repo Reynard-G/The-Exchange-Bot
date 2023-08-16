@@ -18,7 +18,7 @@ module.exports = {
           .setTimestamp()
           .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
       ],
-      ephemeral: true
+      ephemeral: tru
     });
   }
 };

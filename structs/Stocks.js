@@ -177,8 +177,6 @@ module.exports = class Stocks {
       WHERE ticker = ?`,
       [newStockPrice, ticker]
     );
-
-    console.log(`Updated stock price from ${price_per_share} to ${newStockPrice} for ${ticker}`);
   }
 
   async ticker(ticker) {
@@ -355,9 +353,10 @@ module.exports = class Stocks {
 
     // If the transaction type is a buy, add the difference to the price
     // If the transaction type is a sell, subtract the difference from the price
-    const updated_price = transaction_type === "BUY" ? new Decimal(price).add(updated_difference).toNumber() : new Decimal(price).sub(updated_difference).toNumber();
+    let updated_price = transaction_type === "BUY" ? new Decimal(price).add(updated_difference).toNumber() : new Decimal(price).sub(updated_difference).toNumber();
+    updated_price = updated_price > 0 ? updated_price : 0.0001;
 
-    console.log(`Updated price for ${ticker} is ${updated_price}`);
-    return updated_price > 0 ? updated_price : 0.0001;
+    client.logger.info(`Updated stock price from ${price} to ${updated_price} for ${ticker}`);
+    return updated_price;
   }
-}
+};

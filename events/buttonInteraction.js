@@ -18,6 +18,6 @@ client.on("interactionCreate", async interaction => {
         }
         await button.run(client, interaction);
     } catch (error) {
-        console.log(error);
+        client.logger.error(error.stack);
     }
 });

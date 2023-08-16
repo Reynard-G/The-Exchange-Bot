@@ -31,7 +31,7 @@ client.on("interactionCreate", async interaction => {
 	}
 
 	// Logging
-	client.logger.info(`${interaction.user.tag} (${interaction.user.id}) ${slashCommand.name} ${subCommandGroup || ''}${subCommand ? subCommand : ''}`);
+	client.logger.info(`${interaction.user.tag} (${interaction.user.id}) ${slashCommand.name} ${subCommandGroup || ''} ${subCommand ? subCommand : ''}`);
 
 	try {
 		if (slashCommand.cooldown) {
@@ -82,7 +82,7 @@ client.on("interactionCreate", async interaction => {
 			}
 		} catch (error) {
 			if (error.name === "InvalidStockTickerError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid stock ticker.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid stock ticker.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -95,7 +95,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "FrozenStockError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a frozen stock.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a frozen stock.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -108,7 +108,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "FrozenUserError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a frozen user.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a frozen user.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -121,7 +121,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "InsufficientPermissionsError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a command without the required permissions.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a command without the required permissions.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -134,7 +134,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "InsufficientFundsError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to use a command without enough funds.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to use a command without enough funds.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -147,7 +147,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "InvalidSharesAmountError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid amount of shares.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid amount of shares.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -160,7 +160,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "InvalidLimitPriceError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid limit price.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) provided an invalid limit price.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -173,7 +173,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "NotRegisteredError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a command without being registered.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access a command without being registered.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -186,7 +186,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "AlreadyRegisteredError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to register an account while already being registered.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to register an account while already being registered.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -199,7 +199,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "OrderNotFoundError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access an order that doesn't exist.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access an order that doesn't exist.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -212,7 +212,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else if (error.name === "ImageTooLargeError") {
-				console.warn(`${interaction.user.tag} (${interaction.user.id}) tried to upload an image that was too large.`);
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to upload an image that was too large.`);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -225,7 +225,7 @@ client.on("interactionCreate", async interaction => {
 					ephemeral: true
 				});
 			} else {
-				console.error(error);
+				client.logger.error(error.stack);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
@@ -240,6 +240,6 @@ client.on("interactionCreate", async interaction => {
 			}
 		}
 	} catch (error) {
-		console.error(error);
+		client.logger.error(error.stack);
 	}
 });

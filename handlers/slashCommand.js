@@ -69,7 +69,7 @@ module.exports = (client) => {
 			);
 			console.log(chalk.yellow("Slash Commands • Registered"));
 		} catch (error) {
-			console.log(error);
+			client.logger.error(error.stack);
 		}
 	})();
 };
