@@ -347,9 +347,9 @@ module.exports = class Stocks {
     const ticker_details = await this.ticker(ticker);
     const { price, total_outstanding_shares } = ticker_details;
 
-    const k_value = 1.25;
+    const k_value = 2.5;
     const percentage_change = (amount / total_outstanding_shares) * 100;
-    const updated_difference = new Decimal(percentage_change).mul(k_value).div(100).toNumber();
+    const updated_difference = new Decimal(percentage_change).mul(k_value).toNumber();
 
     // If the transaction type is a buy, add the difference to the price
     // If the transaction type is a sell, subtract the difference from the price
