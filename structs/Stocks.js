@@ -37,7 +37,7 @@ module.exports = class Stocks {
 
     client.emitter.emit("buy", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
 
-    return await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, fee, order_type, order_type_details);
+    return await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
   }
 
   async sell(discord_id, ticker, amount, order_type, order_type_details) {
@@ -66,10 +66,10 @@ module.exports = class Stocks {
 
     client.emitter.emit("sell", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
 
-    return await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, 0, order_type, order_type_details);
+    return await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
   }
 
-  async processOrder(discord_id, ticker, amount, price_per_share, fee, order_type, order_type_details) {
+  async processOrder(discord_id, ticker, amount, price_per_share, order_type, order_type_details) {
     const original_account_id = await this.account.databaseID(discord_id);
     let leftoverAmount = new Decimal(amount);
 
@@ -306,6 +306,13 @@ module.exports = class Stocks {
     await client.query("UPDATE tickers SET price = ? WHERE ticker = ?", [price, ticker]);
   }
 
+  // Method to incrementally update the price of a stock based on the amount of shares bought/sold with orders
+  async hft(ticker, new_price) {
+    const ticker_details = await this.ticker(ticker);
+
+    
+  }
+
   /**
    * UTILITY FUNCTIONS
    */
@@ -347,9 +354,9 @@ module.exports = class Stocks {
     const ticker_details = await this.ticker(ticker);
     const { price, total_outstanding_shares } = ticker_details;
 
-    const k_value = 2.5;
-    const percentage_change = (amount / total_outstanding_shares) * 100;
-    const updated_difference = new Decimal(percentage_change).mul(k_value).toNumber();
+    const k_value = 2.0;
+    const shares_percentage_change = new Decimal(amount).div(total_outstanding_shares).toNumber();
+    const updated_difference = new Decimal(price).mul(shares_percentage_change).mul(k_value);
 
     // If the transaction type is a buy, add the difference to the price
     // If the transaction type is a sell, subtract the difference from the price
