@@ -330,6 +330,7 @@ module.exports = class Stocks {
       FROM transactions
       WHERE ticker = ?
       GROUP BY account_id
+      HAVING total_shares <> 0
       ORDER BY total_shares DESC`,
       [ticker]
     );
