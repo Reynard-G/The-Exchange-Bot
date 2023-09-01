@@ -77,13 +77,6 @@ module.exports = class Account {
     return order.length > 0 ? order[0] : null;
   }
 
-  async cancelOrder(orderID) {
-    await client.query("UPDATE orders SET active = 0 WHERE id = ?",
-      [orderID]);
-
-    client.emitter.emit("orderCancelled", orderID);
-  }
-
   async portfolio(discord_id) {
     const account_id = await this.databaseID(discord_id);
     const portfolio = (await client.query(`

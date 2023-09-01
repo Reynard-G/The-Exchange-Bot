@@ -252,6 +252,72 @@ module.exports = {
           ],
         },
         {
+          name: "available_shares",
+          description: "Change the amount of available share (public) for a stock.",
+          type: ApplicationCommandOptionType.Subcommand,
+          cooldown: 3000,
+          options: [
+            {
+              name: "ticker",
+              description: "The ticker of the stock you want to change the amount of available shares for.",
+              type: ApplicationCommandOptionType.String,
+              required: true,
+              max_length: 5,
+            },
+            {
+              name: "amount",
+              description: "The amount of available shares you want to set.",
+              type: ApplicationCommandOptionType.Integer,
+              required: true,
+              min_value: 0,
+            },
+          ],
+        },
+        {
+          name: "outstanding_shares",
+          description: "Change the amount of outstanding share (public) for a stock.",
+          type: ApplicationCommandOptionType.Subcommand,
+          cooldown: 3000,
+          options: [
+            {
+              name: "ticker",
+              description: "The ticker of the stock you want to change the amount of outstanding shares for.",
+              type: ApplicationCommandOptionType.String,
+              required: true,
+              max_length: 5,
+            },
+            {
+              name: "amount",
+              description: "The amount of outstanding shares you want to set.",
+              type: ApplicationCommandOptionType.Integer,
+              required: true,
+              min_value: 1,
+            },
+          ],
+        },
+        {
+          name: "total_outstanding_shares",
+          description: "Change the total amount of outstanding share (private & public) for a stock.",
+          type: ApplicationCommandOptionType.Subcommand,
+          cooldown: 3000,
+          options: [
+            {
+              name: "ticker",
+              description: "The ticker of the stock you want to change the total amount of outstanding shares for.",
+              type: ApplicationCommandOptionType.String,
+              required: true,
+              max_length: 5,
+            },
+            {
+              name: "amount",
+              description: "The total amount of outstanding shares you want to set.",
+              type: ApplicationCommandOptionType.Integer,
+              required: true,
+              min_value: 1,
+            },
+          ],
+        },
+        {
           name: "shareholders",
           description: "View a stock's shareholders.",
           type: ApplicationCommandOptionType.Subcommand,
@@ -447,42 +513,6 @@ module.exports = {
               type: ApplicationCommandOptionType.Number,
               required: true,
               min_value: 0.01,
-            }
-          ],
-        },
-      ],
-    },
-    {
-      name: "hft",
-      description: "Admin related commands for HFT.",
-      type: ApplicationCommandOptionType.SubcommandGroup,
-      cooldown: 3000,
-      options: [
-        {
-          name: "adjust",
-          description: "Adjust prices using HFT.",
-          type: ApplicationCommandOptionType.Subcommand,
-          cooldown: 3000,
-          options: [
-            {
-              name: "ticker",
-              description: "The ticker of the stock you want to adjust.",
-              type: ApplicationCommandOptionType.String,
-              required: true,
-              max_length: 5,
-            },
-            {
-              name: "new_price_per_share",
-              description: "The new price per share you want to adjust the stock price to.",
-              type: ApplicationCommandOptionType.Number,
-              required: true,
-              min_value: 0.01,
-            },
-            {
-              name: "time",
-              description: "The amount of time you want to gradually adjust the price over.",
-              type: ApplicationCommandOptionType.String,
-              required: true,
             }
           ],
         },

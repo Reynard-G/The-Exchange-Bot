@@ -2,7 +2,7 @@ const client = require("../index.js");
 const Account = require("./Account.js");
 const Decimal = require("decimal.js-light");
 const moment = require("moment-timezone");
-const { InvalidStockTickerError, FrozenStockError, FrozenUserError, InsufficientFundsError, InvalidSharesAmountError, ImageTooLargeError } = require("./Errors.js");
+const { InvalidStockTickerError, FrozenStockError, FrozenUserError, InsufficientFundsError, InvalidSharesAmountError, ImageTooLargeError, ConflictingError } = require("./Errors.js");
 
 module.exports = class Stocks {
 
@@ -37,7 +37,7 @@ module.exports = class Stocks {
 
     client.emitter.emit("buy", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
 
-    return await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
+    await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
   }
 
   async sell(discord_id, ticker, amount, order_type, order_type_details) {
@@ -66,7 +66,7 @@ module.exports = class Stocks {
 
     client.emitter.emit("sell", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
 
-    return await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
+    await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
   }
 
   async processOrder(discord_id, ticker, amount, price_per_share, order_type, order_type_details) {
@@ -148,9 +148,6 @@ module.exports = class Stocks {
         );
       }
 
-      // Update leftover amount
-      leftoverAmount = new Decimal(leftoverAmount).minus(current_order_amount);
-
       // Update fulfilled order to inactive if remaining amount is 0
       if (updated_remaining_amount.eq(0)) {
         await client.query(`
@@ -159,6 +156,14 @@ module.exports = class Stocks {
           WHERE id = ?`,
           [id]
         );
+      }
+
+      // Update leftover amount
+      leftoverAmount = new Decimal(leftoverAmount).minus(current_order_amount);
+
+      // Break out of the loop if there is no leftover amount
+      if (leftoverAmount.eq(0)) {
+        break;
       }
     }
 
@@ -177,6 +182,8 @@ module.exports = class Stocks {
       WHERE ticker = ?`,
       [newStockPrice, ticker]
     );
+
+    client.logger.info(`Updated stock price from ${price_per_share} to ${newStockPrice} for ${ticker}`);
   }
 
   async ticker(ticker) {
@@ -227,6 +234,8 @@ module.exports = class Stocks {
       INSERT INTO tickers (ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price)
       VALUES (?, ?, ?, ?, ?, ?)`,
       [ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price]);
+
+    client.emitter.emit("stockCreated", ticker.toUpperCase(), company_name, available_shares, outstanding_shares, total_outstanding_shares, price);
   }
 
   async setImage(ticker, imageBuffer) {
@@ -242,12 +251,14 @@ module.exports = class Stocks {
     }
 
     await client.query("UPDATE tickers SET image = ? WHERE ticker = ?", [imageBuffer, ticker]);
+
+    client.emitter.emit("imageUpdated", ticker.toUpperCase(), imageBuffer);
   }
 
   async setAvailableShares(ticker, available_shares) {
-    // Check if available shares is a more than outstanding shares or less than 0
+    // Check if available shares is a more than outstanding shares
     const outstanding_shares = (await client.query("SELECT outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].outstanding_shares;
-    if (available_shares > outstanding_shares || available_shares < 0) {
+    if (available_shares > outstanding_shares) {
       throw new InvalidSharesAmountError(available_shares);
     }
 
@@ -257,13 +268,29 @@ module.exports = class Stocks {
       throw new InvalidStockTickerError(ticker);
     }
 
-    await client.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
+    // Check if there is an active IPO order, if so, update the available shares
+    const ipo_order = await client.query("SELECT * FROM orders WHERE ticker = ? AND ipo = 1 AND active = 1", [ticker]);
+    if (ipo_order.length > 0 && ipo_order[0].remaining_amount + ipo_order[0].fulfilled_amount > available_shares) {
+      const already_bought_shares = ipo_order[0].fulfilled_amount;
+      const new_available_shares = new Decimal(available_shares).sub(already_bought_shares).toNumber();
+
+      // If new_available_shares is less than 0, throw an error
+      if (new_available_shares < 0) {
+        throw new ConflictingError("Cannot set available shares to less than the amount of shares available for the IPO");
+      } else {
+        await client.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [new_available_shares, ticker]);
+      }
+    } else {
+      await client.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
+    }
+
+    client.emitter.emit("availableSharesUpdated", ticker.toUpperCase(), available_shares);
   }
 
   async setOutstandingShares(ticker, outstanding_shares) {
-    // Check if outstanding shares is a more than total outstanding shares or less than 0
+    // Check if outstanding shares is a more than total outstanding shares
     const total_outstanding_shares = (await client.query("SELECT total_outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].total_outstanding_shares;
-    if (outstanding_shares > total_outstanding_shares || outstanding_shares < 0) {
+    if (outstanding_shares > total_outstanding_shares) {
       throw new InvalidSharesAmountError(outstanding_shares);
     }
 
@@ -274,6 +301,26 @@ module.exports = class Stocks {
     }
 
     await client.query("UPDATE tickers SET outstanding_shares = ? WHERE ticker = ?", [outstanding_shares, ticker]);
+
+    client.emitter.emit("outstandingSharesUpdated", ticker.toUpperCase(), outstanding_shares);
+  }
+
+  async setTotalOutstandingShares(ticker, total_outstanding_shares) {
+    // Check if total outstanding shares is a less than outstanding shares
+    const outstanding_shares = (await client.query("SELECT outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].outstanding_shares;
+    if (total_outstanding_shares < outstanding_shares) {
+      throw new InvalidSharesAmountError(total_outstanding_shares);
+    }
+
+    // Check if ticker exists
+    const ticker_details = await this.ticker(ticker);
+    if (!ticker_details) {
+      throw new InvalidStockTickerError(ticker);
+    }
+
+    await client.query("UPDATE tickers SET total_outstanding_shares = ? WHERE ticker = ?", [total_outstanding_shares, ticker]);
+
+    client.emitter.emit("totalOutstandingSharesUpdated", ticker.toUpperCase(), total_outstanding_shares);
   }
 
   // method to get open, close, high, low prices for a ticker for a given date
@@ -304,13 +351,6 @@ module.exports = class Stocks {
 
   async setPrice(ticker, price) {
     await client.query("UPDATE tickers SET price = ? WHERE ticker = ?", [price, ticker]);
-  }
-
-  // Method to incrementally update the price of a stock based on the amount of shares bought/sold with orders
-  async hft(ticker, new_price) {
-    const ticker_details = await this.ticker(ticker);
-
-    
   }
 
   /**
@@ -364,7 +404,6 @@ module.exports = class Stocks {
     let updated_price = transaction_type === "BUY" ? new Decimal(price).add(updated_difference).toNumber() : new Decimal(price).sub(updated_difference).toNumber();
     updated_price = updated_price > 0 ? updated_price : 0.0001;
 
-    client.logger.info(`Updated stock price from ${price} to ${updated_price} for ${ticker}`);
     return updated_price;
   }
 };

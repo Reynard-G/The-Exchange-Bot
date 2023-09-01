@@ -75,6 +75,13 @@ class ImageTooLargeError extends Error {
   }
 }
 
+class ConflictingError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'ConflictingError';
+  }
+}
+
 module.exports = {
   InvalidStockTickerError,
   FrozenStockError,
@@ -86,5 +93,6 @@ module.exports = {
   NotRegisteredError,
   AlreadyRegisteredError,
   OrderNotFoundError,
-  ImageTooLargeError
+  ImageTooLargeError,
+  ConflictingError
 };

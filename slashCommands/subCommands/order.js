@@ -125,20 +125,5 @@ module.exports = {
         },
       ],
     },
-    {
-      name: "cancel",
-      description: "Cancel an order.",
-      type: ApplicationCommandOptionType.Subcommand,
-      cooldown: 3000,
-      options: [
-        {
-          name: "order_id",
-          description: "The ID of the order you want to cancel.",
-          type: ApplicationCommandOptionType.Integer,
-          required: true,
-          min_value: 1,
-        },
-      ],
-    },
   ],
 };
