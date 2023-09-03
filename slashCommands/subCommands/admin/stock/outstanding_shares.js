@@ -3,7 +3,7 @@ const Stocks = require("../../../../structs/Stocks.js");
 
 module.exports = {
   name: "outstanding_shares",
-  run: async (interaction) => {
+  run: async (client, interaction) => {
     const ticker = interaction.options.getString("ticker").toUpperCase();
     const outstandingShares = interaction.options.getInteger("outstanding_shares");
 

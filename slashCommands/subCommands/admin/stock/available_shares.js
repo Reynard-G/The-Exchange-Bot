@@ -3,12 +3,12 @@ const Stocks = require("../../../../structs/Stocks.js");
 
 module.exports = {
   name: "available_shares",
-  run: async (interaction) => {
+  run: async (client, interaction) => {
     const ticker = interaction.options.getString("ticker").toUpperCase();
-    const availableShares = interaction.options.getInteger("available_shares");
+    const availableShares = interaction.options.getInteger("amount");
 
     const stocks = new Stocks();
-    const previousAvailableShares = (await stocks.ticker(ticker)).availableShares;
+    const previousAvailableShares = (await stocks.ticker(ticker)).available_shares;
     
     await stocks.setAvailableShares(ticker, availableShares);
 

@@ -31,7 +31,27 @@ client.on("interactionCreate", async interaction => {
 	}
 
 	// Logging
-	client.logger.info(`${interaction.user.tag} (${interaction.user.id}) ${slashCommand.name} ${subCommandGroup || ''} ${subCommand ? subCommand : ''}`);
+	function printOptions(commandName = '', options) {
+		const result = [];
+	
+		function processOption(option) {
+			if (option.name && option.value) {
+				console.log(option)
+				result.push(`${option.name}:${option.value}`);
+			} else if (option.name && option.options) {
+				result.push(option.name);
+				option.options.forEach(processOption);
+			}
+		}
+	
+		if (Array.isArray(options) && options.length > 0) {
+			options.forEach(processOption);
+		}
+
+		return `${commandName} ${result.join(' ')}`;
+	}
+
+	client.logger.info(`${interaction.user.tag} (${interaction.user.id}) ` + printOptions(interaction.commandName, interaction.options.data));
 
 	try {
 		if (slashCommand.cooldown) {

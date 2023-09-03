@@ -395,7 +395,7 @@ module.exports = class Stocks {
     const ticker_details = await this.ticker(ticker);
     const { price, total_outstanding_shares } = ticker_details;
 
-    const k_value = 2.0;
+    const k_value = 1.5;
     const shares_percentage_change = new Decimal(amount).div(total_outstanding_shares).toNumber();
     const updated_difference = new Decimal(price).mul(shares_percentage_change).mul(k_value);
 
