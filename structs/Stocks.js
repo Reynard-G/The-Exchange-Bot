@@ -269,9 +269,9 @@ module.exports = class Stocks {
     }
 
     // Check if there is an active IPO order, if so, update the available shares
-    const ipo_order = await client.query("SELECT * FROM orders WHERE ticker = ? AND ipo = 1 AND active = 1", [ticker]);
-    if (ipo_order.length > 0 && ipo_order[0].remaining_amount + ipo_order[0].fulfilled_amount > available_shares) {
-      const already_bought_shares = ipo_order[0].fulfilled_amount;
+    const ipo_order = (await client.query("SELECT * FROM orders WHERE ticker = ? AND ipo = 1 AND active = 1", [ticker]))[0];
+    if (ipo_order.length > 0 && ipo_order.remaining_amount + ipo_order.fulfilled_amount > available_shares) {
+      const already_bought_shares = ipo_order.fulfilled_amount;
       const new_available_shares = new Decimal(available_shares).sub(already_bought_shares).toNumber();
 
       // If new_available_shares is less than 0, throw an error
@@ -284,7 +284,7 @@ module.exports = class Stocks {
       await client.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
     }
 
-    client.emitter.emit("availableSharesUpdated", ticker.toUpperCase(), available_shares);
+    client.emitter.emit("availableSharesUpdated", ticker.toUpperCase(), ticker_details.available_shares, available_shares);
   }
 
   async setOutstandingShares(ticker, outstanding_shares) {
@@ -302,7 +302,7 @@ module.exports = class Stocks {
 
     await client.query("UPDATE tickers SET outstanding_shares = ? WHERE ticker = ?", [outstanding_shares, ticker]);
 
-    client.emitter.emit("outstandingSharesUpdated", ticker.toUpperCase(), outstanding_shares);
+    client.emitter.emit("outstandingSharesUpdated", ticker.toUpperCase(), ticker_details.outstanding_shares, outstanding_shares);
   }
 
   async setTotalOutstandingShares(ticker, total_outstanding_shares) {
@@ -320,7 +320,7 @@ module.exports = class Stocks {
 
     await client.query("UPDATE tickers SET total_outstanding_shares = ? WHERE ticker = ?", [total_outstanding_shares, ticker]);
 
-    client.emitter.emit("totalOutstandingSharesUpdated", ticker.toUpperCase(), total_outstanding_shares);
+    client.emitter.emit("totalOutstandingSharesUpdated", ticker.toUpperCase(), ticker_details.total_outstanding_shares, total_outstanding_shares);
   }
 
   // method to get open, close, high, low prices for a ticker for a given date

@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const client = require("..");
 
-client.emitter.on("totalOutstandingSharesUpdated", async (ticker, totalOutstandingShares) => {
+client.emitter.on("totalOutstandingSharesUpdated", async (ticker, oldTotalOutstandingShares, newTotalOutstandingShares) => {
   const auditChannel = client.channels.cache.get(process.env.AUDIT_CHANNEL_ID);
 
   auditChannel.send({
@@ -15,7 +15,7 @@ client.emitter.on("totalOutstandingSharesUpdated", async (ticker, totalOutstandi
           },
           {
             name: "Total Outstanding Shares",
-            value: `${totalOutstandingShares}`
+            value: `**${oldTotalOutstandingShares}** → **${newTotalOutstandingShares}**`
           }
         )
         .setColor("Green")
