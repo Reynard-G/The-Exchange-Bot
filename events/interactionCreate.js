@@ -36,7 +36,6 @@ client.on("interactionCreate", async interaction => {
 	
 		function processOption(option) {
 			if (option.name && option.value) {
-				console.log(option)
 				result.push(`${option.name}:${option.value}`);
 			} else if (option.name && option.options) {
 				result.push(option.name);
