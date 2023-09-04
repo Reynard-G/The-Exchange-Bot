@@ -270,7 +270,7 @@ module.exports = class Stocks {
 
     // Check if there is an active IPO order, if so, update the available shares
     const ipo_order = (await client.query("SELECT * FROM orders WHERE ticker = ? AND ipo = 1 AND active = 1", [ticker]))[0];
-    if (ipo_order.length > 0 && ipo_order.remaining_amount + ipo_order.fulfilled_amount > available_shares) {
+    if (Object.keys(ipo_order).length > 0) {
       const already_bought_shares = ipo_order.fulfilled_amount;
       const new_available_shares = new Decimal(available_shares).sub(already_bought_shares).toNumber();
 
@@ -278,11 +278,11 @@ module.exports = class Stocks {
       if (new_available_shares < 0) {
         throw new ConflictingError("Cannot set available shares to less than the amount of shares available for the IPO");
       } else {
-        await client.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [new_available_shares, ticker]);
+        await client.query("UPDATE orders SET remaining_amount = ? WHERE id = ?", [new_available_shares, ipo_order.id])
       }
-    } else {
-      await client.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
     }
+
+    await client.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
 
     client.emitter.emit("availableSharesUpdated", ticker.toUpperCase(), ticker_details.available_shares, available_shares);
   }
@@ -358,6 +358,12 @@ module.exports = class Stocks {
    */
 
   async shareholders(ticker, exchange_discord_id) {
+    // Check if ticker exists
+    const ticker_details = await this.ticker(ticker);
+    if (!ticker_details) {
+      throw new InvalidStockTickerError(ticker);
+    }
+
     // Get shareholder through transactions, differentiate between CR and DR
     const shareholders = await client.query(`
       SELECT

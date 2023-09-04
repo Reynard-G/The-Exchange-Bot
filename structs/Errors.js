@@ -79,6 +79,7 @@ class ConflictingError extends Error {
   constructor(message) {
     super(message);
     this.name = 'ConflictingError';
+    this.message = message;
   }
 }
 

@@ -243,6 +243,25 @@ client.on("interactionCreate", async interaction => {
 					],
 					ephemeral: true
 				});
+			} else if (error.name === "ConflictingError") {
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to perform a conflicting action.`);
+				await interaction.reply({
+					embeds: [
+						new EmbedBuilder()
+							.setTitle("Conflicting Action")
+							.setDescription(`You've performed a conflicting action. Please look at the error message below for more information.`)
+							.addFields(
+								{
+									name: "Error",
+									value: error.message
+								}
+							)
+							.setColor("Red")
+							.setTimestamp()
+							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: client.user.avatarURL() })
+					],
+					ephemeral: true
+				});
 			} else {
 				client.logger.error(error.stack);
 				await interaction.reply({

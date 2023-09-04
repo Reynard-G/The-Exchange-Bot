@@ -12,8 +12,17 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setTitle("Shareholders")
-      .setDescription(`Shareholders for **${ticker}**.`)
-      .setFields(
+      .setColor("#BB8FCE")
+      .setTimestamp()
+      .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() });
+
+    // If there are no shareholders, return a message saying so
+    if (shareholders.length === 0) {
+      embed.setDescription(`There are no shareholders for **${ticker}**.`);
+    } else {
+      // Otherwise, list the shareholders
+      embed.setDescription(`Shareholders for **${ticker}**:`);
+      embed.setFields(
         shareholders.map((shareholder) => {
           return {
             name: `${shareholder.username}`,
@@ -21,10 +30,8 @@ module.exports = {
             inline: true,
           };
         })
-      )
-      .setColor("#BB8FCE")
-      .setTimestamp()
-      .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() });
+      );
+    }
 
     return interaction.reply({ embeds: [embed] });
   }
