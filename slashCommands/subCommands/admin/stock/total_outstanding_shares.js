@@ -5,11 +5,11 @@ module.exports = {
   name: "total_outstanding_shares",
   run: async (client, interaction) => {
     const ticker = interaction.options.getString("ticker").toUpperCase();
-    const totalOutstandingShares = interaction.options.getInteger("total_outstanding_shares");
+    const totalOutstandingShares = interaction.options.getInteger("amount");
 
     const stocks = new Stocks();
     const previousTotalOutstandingShares = (await stocks.ticker(ticker)).total_outstanding_shares;
-    
+
     await stocks.setTotalOutstandingShares(ticker, totalOutstandingShares);
 
     const embed = new EmbedBuilder()

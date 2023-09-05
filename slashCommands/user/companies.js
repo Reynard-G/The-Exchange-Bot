@@ -8,7 +8,9 @@ module.exports = {
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
     const stock = new Stocks();
-    const companies = await stock.companies();
+
+    // Filter companies that have `delisted` set to 1
+    const companies = (await stock.companies()).filter(company => company.delisted === 0);
 
     const embed = new EmbedBuilder()
       .setTitle("Companies")

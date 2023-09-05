@@ -159,6 +159,36 @@ module.exports = {
           ],
         },
         {
+          name: "delist",
+          description: "Delist a stock.",
+          type: ApplicationCommandOptionType.Subcommand,
+          cooldown: 3000,
+          options: [
+            {
+              name: "ticker",
+              description: "The ticker of the stock you want to delist.",
+              type: ApplicationCommandOptionType.String,
+              required: true,
+              max_length: 5,
+            },
+          ],
+        },
+        {
+          name: "relist",
+          description: "Relist a stock.",
+          type: ApplicationCommandOptionType.Subcommand,
+          cooldown: 3000,
+          options: [
+            {
+              name: "ticker",
+              description: "The ticker of the stock you want to relist.",
+              type: ApplicationCommandOptionType.String,
+              required: true,
+              max_length: 5,
+            },
+          ],
+        },
+        {
           name: "create",
           description: "Create a stock.",
           type: ApplicationCommandOptionType.Subcommand,

@@ -202,7 +202,7 @@ module.exports = class Stocks {
   }
 
   async companies() {
-    const companies = await client.query("SELECT ticker, company_name, frozen FROM tickers");
+    const companies = await client.query("SELECT ticker, company_name, frozen, delisted FROM tickers");
     return companies;
   }
 
@@ -211,11 +211,27 @@ module.exports = class Stocks {
     return frozen === 1;
   }
 
+  async isDelisted(ticker) {
+    const delisted = (await client.query("SELECT delisted FROM tickers WHERE ticker = ?", [ticker]))[0].delisted;
+    return delisted === 1;
+  }
+
   /**
    * ADMIN COMMANDS
    */
 
   async freeze(ticker) {
+    // Check if ticker exists
+    const stock = await this.ticker(ticker);
+    if (!stock) {
+      throw new InvalidStockTickerError(ticker);
+    }
+
+    // Check if ticker is already frozen
+    if (stock.frozen === 1) {
+      throw new ConflictingError("Stock is already frozen");
+    }
+
     // Freeze the specified stock
     await client.query("UPDATE tickers SET frozen = 1 WHERE ticker = ?", [ticker]);
 
@@ -223,10 +239,57 @@ module.exports = class Stocks {
   }
 
   async unfreeze(ticker) {
+    // Check if ticker exists
+    const stock = await this.ticker(ticker);
+    if (!stock) {
+      throw new InvalidStockTickerError(ticker);
+    }
+
+    // Check if ticker is already unfrozen
+    if (stock.frozen === 0) {
+      throw new ConflictingError("Stock is already unfrozen");
+    }
+
     // Unfreeze the specified stock
     await client.query("UPDATE tickers SET frozen = 0 WHERE ticker = ?", [ticker]);
 
     client.emitter.emit("stockUnfrozen", ticker.toUpperCase());
+  }
+
+  async delist(ticker) {
+    // Check if ticker exists
+    const stock = await this.ticker(ticker);
+    if (!stock) {
+      throw new InvalidStockTickerError(ticker);
+    }
+
+    // Check if ticker is already delisted
+    if (stock.delisted === 1) {
+      throw new ConflictingError("Stock is already delisted");
+    }
+
+    // Delist the specified stock
+    await client.query("UPDATE tickers SET delisted = 1 WHERE ticker = ?", [ticker]);
+
+    client.emitter.emit("stockDelisted", ticker.toUpperCase());
+  }
+
+  async relist(ticker) {
+    // Check if ticker exists
+    const stock = await this.ticker(ticker);
+    if (!stock) {
+      throw new InvalidStockTickerError(ticker);
+    }
+
+    // Check if ticker is already relisted
+    if (stock.delisted === 0) {
+      throw new ConflictingError("Stock is already relisted");
+    }
+
+    // Relist the specified stock
+    await client.query("UPDATE tickers SET delisted = 0 WHERE ticker = ?", [ticker]);
+
+    client.emitter.emit("stockRelisted", ticker.toUpperCase());
   }
 
   async create(ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price) {
@@ -278,7 +341,7 @@ module.exports = class Stocks {
       if (new_available_shares < 0) {
         throw new ConflictingError("Cannot set available shares to less than the amount of shares available for the IPO");
       } else {
-        await client.query("UPDATE orders SET remaining_amount = ? WHERE id = ?", [new_available_shares, ipo_order.id])
+        await client.query("UPDATE orders SET remaining_amount = ? WHERE id = ?", [new_available_shares, ipo_order.id]);
       }
     }
 
