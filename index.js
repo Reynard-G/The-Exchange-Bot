@@ -23,7 +23,7 @@ client.subCommands = new Collection();
 client.buttons = new Collection();
 
 client.emitter = new events.EventEmitter();
-client.emitter.setMaxListeners(15);
+client.emitter.setMaxListeners(25);
 
 client.logger = winston.createLogger({
 	level: 'info',
