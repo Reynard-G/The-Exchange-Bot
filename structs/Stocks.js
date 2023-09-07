@@ -12,6 +12,10 @@ const {
 } = require("./Errors.js");
 
 module.exports = class Stocks {
+  constructor(client) {
+    this.client = client;
+  }
+
   /**
    * Buy a specified amount of shares of a ticker
    * 
@@ -32,7 +36,7 @@ module.exports = class Stocks {
     }
 
     // Check if account is frozen
-    const isFrozen = await client.account.isFrozen(discord_id);
+    const isFrozen = await this.client.account.isFrozen(discord_id);
     if (isFrozen) {
       throw new FrozenUserError(discord_id);
     }
@@ -41,12 +45,12 @@ module.exports = class Stocks {
     const price_per_share = stock.price;
     const total_price = new Decimal(price_per_share).mul(amount);
     const fee = new Decimal(total_price).mul(process.env.ORDER_FEE_PERCENTAGE).toNumber();
-    const balance = await client.account.balance(discord_id);
+    const balance = await this.client.account.balance(discord_id);
     if (balance < total_price.add(fee).toNumber()) {
       throw new InsufficientFundsError(discord_id, total_price, balance);
     }
 
-    client.emitter.emit("buy", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
+    this.client.emitter.emit("buy", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
 
     await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
   }
@@ -71,20 +75,20 @@ module.exports = class Stocks {
     }
 
     // Check if account is frozen
-    const isFrozen = await client.account.isFrozen(discord_id);
+    const isFrozen = await this.client.account.isFrozen(discord_id);
     if (isFrozen) {
       throw new FrozenUserError(discord_id);
     }
 
     // Check if account has enough shares to sell
     const price_per_share = stock.price;
-    const shares = await client.account.portfolio(discord_id);
+    const shares = await this.client.account.portfolio(discord_id);
     const ticker_shares = shares.find(share => share.ticker === ticker.toUpperCase());
     if (!ticker_shares || parseInt(ticker_shares.total_shares) < amount) {
       throw new InsufficientFundsError(discord_id, amount, shares[ticker.toUpperCase()] || 0);
     }
 
-    client.emitter.emit("sell", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
+    this.client.emitter.emit("sell", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
 
     await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
   }
@@ -100,7 +104,7 @@ module.exports = class Stocks {
    * @param {Object} order_type_details 
    */
   async processOrder(discord_id, ticker, amount, price_per_share, order_type, order_type_details) {
-    const original_account_id = await client.account.databaseID(discord_id);
+    const original_account_id = await this.client.account.databaseID(discord_id);
     let leftoverAmount = new Decimal(amount);
 
     let queryParams;
@@ -213,7 +217,7 @@ module.exports = class Stocks {
       [newStockPrice, ticker]
     );
 
-    client.logger.info(`Updated stock price from ${price_per_share} to ${newStockPrice} for ${ticker}`);
+    this.client.logger.info(`Updated stock price from ${price_per_share} to ${newStockPrice} for ${ticker}`);
   }
 
   /**
@@ -295,7 +299,7 @@ module.exports = class Stocks {
     // Freeze the specified stock
     await db.query("UPDATE tickers SET frozen = 1 WHERE ticker = ?", [ticker]);
 
-    client.emitter.emit("stockFrozen", ticker.toUpperCase());
+    this.client.emitter.emit("stockFrozen", ticker.toUpperCase());
   }
 
   /**
@@ -318,7 +322,7 @@ module.exports = class Stocks {
     // Unfreeze the specified stock
     await db.query("UPDATE tickers SET frozen = 0 WHERE ticker = ?", [ticker]);
 
-    client.emitter.emit("stockUnfrozen", ticker.toUpperCase());
+    this.client.emitter.emit("stockUnfrozen", ticker.toUpperCase());
   }
 
   /**
@@ -341,7 +345,7 @@ module.exports = class Stocks {
     // Delist the specified stock
     await db.query("UPDATE tickers SET delisted = 1 WHERE ticker = ?", [ticker]);
 
-    client.emitter.emit("stockDelisted", ticker.toUpperCase());
+    this.client.emitter.emit("stockDelisted", ticker.toUpperCase());
   }
 
   /**
@@ -364,7 +368,7 @@ module.exports = class Stocks {
     // Relist the specified stock
     await db.query("UPDATE tickers SET delisted = 0 WHERE ticker = ?", [ticker]);
 
-    client.emitter.emit("stockRelisted", ticker.toUpperCase());
+    this.client.emitter.emit("stockRelisted", ticker.toUpperCase());
   }
 
   /**
@@ -383,7 +387,7 @@ module.exports = class Stocks {
       VALUES (?, ?, ?, ?, ?, ?)`,
       [ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price]);
 
-    client.emitter.emit("stockCreated", ticker.toUpperCase(), company_name, available_shares, outstanding_shares, total_outstanding_shares, price);
+    this.client.emitter.emit("stockCreated", ticker.toUpperCase(), company_name, available_shares, outstanding_shares, total_outstanding_shares, price);
   }
 
   /**
@@ -406,7 +410,7 @@ module.exports = class Stocks {
 
     await db.query("UPDATE tickers SET image = ? WHERE ticker = ?", [imageBuffer, ticker]);
 
-    client.emitter.emit("imageUpdated", ticker.toUpperCase(), imageBuffer);
+    this.client.emitter.emit("imageUpdated", ticker.toUpperCase(), imageBuffer);
   }
 
   /**
@@ -444,7 +448,7 @@ module.exports = class Stocks {
 
     await db.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
 
-    client.emitter.emit("availableSharesUpdated", ticker.toUpperCase(), ticker_details.available_shares, available_shares);
+    this.client.emitter.emit("availableSharesUpdated", ticker.toUpperCase(), ticker_details.available_shares, available_shares);
   }
 
   /**
@@ -468,7 +472,7 @@ module.exports = class Stocks {
 
     await db.query("UPDATE tickers SET outstanding_shares = ? WHERE ticker = ?", [outstanding_shares, ticker]);
 
-    client.emitter.emit("outstandingSharesUpdated", ticker.toUpperCase(), ticker_details.outstanding_shares, outstanding_shares);
+    this.client.emitter.emit("outstandingSharesUpdated", ticker.toUpperCase(), ticker_details.outstanding_shares, outstanding_shares);
   }
 
   /**
@@ -492,7 +496,7 @@ module.exports = class Stocks {
 
     await db.query("UPDATE tickers SET total_outstanding_shares = ? WHERE ticker = ?", [total_outstanding_shares, ticker]);
 
-    client.emitter.emit("totalOutstandingSharesUpdated", ticker.toUpperCase(), ticker_details.total_outstanding_shares, total_outstanding_shares);
+    this.client.emitter.emit("totalOutstandingSharesUpdated", ticker.toUpperCase(), ticker_details.total_outstanding_shares, total_outstanding_shares);
   }
 
   /**
@@ -600,14 +604,14 @@ module.exports = class Stocks {
     );
 
     // Return without The Exchange's account
-    const exchange_account_id = await client.account.databaseID(exchange_discord_id);
+    const exchange_account_id = await this.client.account.databaseID(exchange_discord_id);
     const filtered_shareholders = shareholders.filter(shareholder => shareholder.account_id !== exchange_account_id);
 
     // Get the usernames & discord ids of the shareholders
     const promises = filtered_shareholders.map(async (shareholder) => {
       const { account_id, total_shares } = shareholder;
-      const discord_id = await client.account.discordID(account_id);
-      const username = await client.account.username(discord_id);
+      const discord_id = await this.client.account.discordID(account_id);
+      const username = await this.client.account.username(discord_id);
       return { discord_id, username, shares: total_shares };
     });
 

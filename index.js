@@ -30,8 +30,8 @@ client.emitter = new events.EventEmitter();
 client.emitter.setMaxListeners(25);
 
 client.utils = new Utils();
-client.stocks = new Stocks();
-client.account = new Account();
+client.stocks = new Stocks(client);
+client.account = new Account(client);
 
 client.logger = winston.createLogger({
 	level: 'info',

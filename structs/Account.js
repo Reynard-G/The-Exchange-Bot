@@ -2,6 +2,10 @@ const db = require("../mysql.js");
 const { AlreadyRegisteredError } = require("./Errors.js");
 
 module.exports = class Account {
+  constructor(client) {
+    this.client = client;
+  }
+
   /**
    * Register a new account to a specific user
    * 
@@ -172,7 +176,7 @@ module.exports = class Account {
     await db.query("UPDATE accounts SET frozen = 1 WHERE discord_id = ?",
       [discordID]);
 
-    client.emitter.emit("accountFrozen", discordID);
+    this.client.emitter.emit("accountFrozen", discordID);
   }
 
   /**
@@ -184,7 +188,7 @@ module.exports = class Account {
     await db.query("UPDATE accounts SET frozen = 0 WHERE discord_id = ?",
       [discordID]);
 
-    client.emitter.emit("accountUnfrozen", discordID);
+    this.client.emitter.emit("accountUnfrozen", discordID);
   }
 
   /**
@@ -203,7 +207,7 @@ module.exports = class Account {
     await db.query("INSERT INTO transactions (account_id, ticker, ticker_amount, ticker_transaction_type, note) VALUES (?, ?, ?, ?, ?)",
       [accountID, ticker, amount, "CR", note]);
 
-    client.emitter.emit("sharesAdded", discordID, ticker, amount, note);
+    this.client.emitter.emit("sharesAdded", discordID, ticker, amount, note);
   }
 
   /**
@@ -222,7 +226,7 @@ module.exports = class Account {
     await db.query("INSERT INTO transactions (account_id, ticker, ticker_amount, ticker_transaction_type, note) VALUES (?, ?, ?, ?, ?)",
       [accountID, ticker, amount, "DR", note]);
 
-    client.emitter.emit("sharesRemoved", discordID, ticker, amount, note);
+    this.client.emitter.emit("sharesRemoved", discordID, ticker, amount, note);
   }
 
   /**
@@ -235,12 +239,12 @@ module.exports = class Account {
   async addBalance(discordID, amount, note) {
     const accountID = await this.databaseID(discordID);
 
-    if (!note) note = `Admin added ${client.utils.formatCurrency(amount)} to ${accountID}`;
+    if (!note) note = `Admin added ${this.client.utils.formatCurrency(amount)} to ${accountID}`;
 
     await db.query("INSERT INTO transactions (account_id, amount, amount_transaction_type, note) VALUES (?, ?, ?, ?)",
       [accountID, amount, "CR", note]);
 
-    client.emitter.emit("balanceAdded", discordID, amount, note);
+    this.client.emitter.emit("balanceAdded", discordID, amount, note);
   }
 
   /**
@@ -253,12 +257,12 @@ module.exports = class Account {
   async removeBalance(discordID, amount, note) {
     const accountID = await this.databaseID(discordID);
 
-    if (!note) note = `Admin removed ${client.utils.formatCurrency(amount)} from ${accountID}`;
+    if (!note) note = `Admin removed ${this.client.utils.formatCurrency(amount)} from ${accountID}`;
 
     await db.query("INSERT INTO transactions (account_id, amount, amount_transaction_type, note) VALUES (?, ?, ?, ?)",
       [accountID, amount, "DR", note]);
 
-    client.emitter.emit("balanceRemoved", discordID, amount, note);
+    this.client.emitter.emit("balanceRemoved", discordID, amount, note);
   }
 
   /**
