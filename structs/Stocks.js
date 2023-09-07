@@ -1,6 +1,6 @@
 const db = require("../mysql.js");
 const Decimal = require("decimal.js-light");
-const moment = require("moment-timezone");
+const { DateTime } = require("luxon");
 const {
   InvalidStockTickerError,
   FrozenStockError,
@@ -538,7 +538,7 @@ module.exports = class Stocks {
    */
   async dailyPercentageChange(ticker) {
     // Get the midnight date in EST timezone
-    const midnight_date = moment().tz("America/New_York").startOf("day").unix();
+    const midnight_date = DateTime.now().setZone("America/New_York").startOf("day").toSeconds();
 
     const prices = await db.query(`
       SELECT 

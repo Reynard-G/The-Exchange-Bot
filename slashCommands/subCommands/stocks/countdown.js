@@ -1,10 +1,10 @@
 const { EmbedBuilder } = require("discord.js");
-const moment = require("moment");
+const { DateTime } = require("luxon");
 
 module.exports = {
   name: "countdown",
   run: async (client, interaction) => {
-    const midnight = moment().utcOffset(-4).startOf("day").add(1, "day").unix();
+    const midnight = DateTime.now().setZone("America/New_York").startOf("day").plus({ days: 1 }).toSeconds();
 
     return interaction.reply({
       embeds: [

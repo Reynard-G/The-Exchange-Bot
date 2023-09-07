@@ -1,6 +1,6 @@
 const { EmbedBuilder, Collection, PermissionsBitField } = require("discord.js");
 const { NotRegisteredError } = require("../structs/Errors.js");
-const moment = require("moment");
+const { Duration } = require("luxon");
 const client = require("..");
 
 const cooldown = new Collection();
@@ -56,7 +56,7 @@ client.on("interactionCreate", async interaction => {
 			if (cooldown.has(`slash-${slashCommand.name}${interaction.user.id}`)) {
 				const cooldownEmbed = new EmbedBuilder()
 					.setTitle("Cooldown")
-					.setDescription(`You are currently on cooldown. Please wait **${moment.duration(cooldown.get(`slash-${slashCommand.name}${interaction.user.id}`) - Date.now()).asSeconds()}s**.`)
+					.setDescription(`You are currently on cooldown. Please wait **${Duration.fromMillis(cooldown.get(`slash-${slashCommand.name}${interaction.user.id}`) - Date.now()).as('seconds')}s**.`)
 					.setColor("Red")
 					.setTimestamp()
 					.setFooter({ text: `The Exchange`, iconURL: interaction.user.displayAvatarURL() });
