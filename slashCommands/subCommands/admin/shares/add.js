@@ -1,10 +1,8 @@
 const { EmbedBuilder } = require("discord.js");
-const Account = require("../../../../structs/Account.js");
 
 module.exports = {
   name: "add",
   run: async (client, interaction) => {
-    const account = new Account();
     const user = interaction.options.getUser("user");
     const ticker = interaction.options.getString("ticker").toUpperCase();
     const amount = interaction.options.getInteger("amount");
@@ -14,19 +12,19 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: `The Exchange  •  Invest in the future`, iconURL: interaction.guild.iconURL() });
 
-    const isRegistered = await account.isRegistered(user.id);
+    const isRegistered = await client.account.isRegistered(user.id);
     if (!isRegistered) {
       embed.setTitle("Error")
         .setDescription("That user is not registered.")
         .setColor("Red");
     } else {
-      const isFrozen = await account.isFrozen(user.id);
+      const isFrozen = await client.account.isFrozen(user.id);
       if (isFrozen) {
         embed.setTitle("Error")
           .setDescription(`The user <@${user.id}> is currently frozen. Use \`/admin user unfreeze\` to unfreeze them.`)
           .setColor("Red");
       } else {
-        await account.addShares(user.id, ticker, amount, note);
+        await client.account.addShares(user.id, ticker, amount, note);
         embed.setTitle("Success")
           .setDescription(`Successfully added **${amount}** shares of **${ticker}** to <@${user.id}>.`)
           .setColor("Green");

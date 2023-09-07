@@ -1,9 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const Decimal = require("decimal.js-light");
 const client = require("..");
-const Account = require("../structs/Account.js");
-
-const account = new Account();
 
 client.emitter.on("sell", async (ticker, amount, share_price, order_type, order_type_details) => {
   const auditChannel = client.channels.cache.get(process.env.TRADING_CHANNEL_ID);
@@ -23,7 +20,7 @@ client.emitter.on("sell", async (ticker, amount, share_price, order_type, order_
           },
           {
             name: "Total Value",
-            value: `${account.formatCurrency(new Decimal(share_price).mul(amount))}`
+            value: `${client.utils.formatCurrency(new Decimal(share_price).mul(amount))}`
           },
           {
             name: "Order Type",
@@ -31,7 +28,7 @@ client.emitter.on("sell", async (ticker, amount, share_price, order_type, order_
           },
           {
             name: "Order Type Details",
-            value: `${order_type === "MARKET" ? `N/A` : `Limit: ${order_type_details.limit_price}`}`
+            value: `${order_type === "MARKET" ? `N/A` : `Limit: ${client.utils.formatCurrency(order_type_details.limit_price)}`}`
           }
         )
         .setColor("#BB8FCE")

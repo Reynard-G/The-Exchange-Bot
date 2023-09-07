@@ -1,6 +1,14 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require("discord.js");
 
 class PagedEmbed {
+
+  /**
+   * Create a new paged embed
+   * 
+   * @param {Object} interaction 
+   * @param {EmbedBuilder} embed 
+   * @param {Array<EmbedBuilder>} pages
+   */
   constructor(interaction, embed, pages) {
     this.interaction = interaction;
     this.embed = embed;
@@ -8,6 +16,12 @@ class PagedEmbed {
     this.currentPage = 0;
   }
 
+  /**
+   * Send a paged embed to the channel
+   * 
+   * @param {Number} time 
+   * @param {Boolean} ephemeral 
+   */
   async send(time = 60000, ephemeral = false) {
     const row = new ActionRowBuilder()
       .addComponents(

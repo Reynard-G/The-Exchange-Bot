@@ -1,11 +1,8 @@
 const { EmbedBuilder } = require("discord.js");
-const Account = require("../structs/Account.js");
 const client = require("..");
 
-const account = new Account();
-
 client.emitter.on("accountUnfrozen", async (discordID) => {
-  const accountID = await account.databaseID(discordID);
+  const accountID = await client.account.databaseID(discordID);
   const auditChannel = client.channels.cache.get(process.env.AUDIT_CHANNEL_ID);
 
   auditChannel.send({

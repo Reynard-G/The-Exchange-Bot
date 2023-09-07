@@ -1,13 +1,11 @@
 const { EmbedBuilder } = require("discord.js");
-const Stocks = require("../../../../structs/Stocks.js");
 
 module.exports = {
   name: "relist",
   run: async (client, interaction) => {
-    const stock = new Stocks();
     const ticker = interaction.options.getString("ticker");
 
-    await stock.relist(ticker);
+    await client.stocks.relist(ticker);
 
     const embed = new EmbedBuilder()
       .setTitle("Success")

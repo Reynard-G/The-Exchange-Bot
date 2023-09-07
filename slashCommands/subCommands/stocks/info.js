@@ -1,24 +1,19 @@
 const { EmbedBuilder } = require("discord.js");
-const Account = require("../../../structs/Account.js");
-const Stocks = require("../../../structs/Stocks.js");
 
 module.exports = {
   name: "info",
   run: async (client, interaction) => {
-    const stocks = new Stocks();
     const ticker = interaction.options.getString("ticker");
-    const stock = await stocks.ticker(ticker);
+    const stock = await client.stocks.ticker(ticker);
 
-    const percentage_change = await stocks.dailyPercentageChange(ticker);
+    const percentage_change = await client.stocks.dailyPercentageChange(ticker);
     const percentage_change_formatted = percentage_change > 0 ? `+${percentage_change}%` : `${percentage_change}%`;
-
-    const account = new Account();
 
     const embed = new EmbedBuilder()
       .setTitle(`${stock.ticker} Stock Info`)
       .addFields(
         { name: "Ticker", value: stock.ticker.toString() },
-        { name: "Price", value: `${account.formatCurrency(stock.price)} (${percentage_change_formatted})` },
+        { name: "Price", value: `${client.utils.formatCurrency(stock.price)} (${percentage_change_formatted})` },
         { name: "Volume", value: `${stock.available_shares}/${stock.outstanding_shares} (${stock.total_outstanding_shares} total)` },
         { name: "Frozen?", value: stock.frozen === 1 ? "Yes" : "No" },
       )

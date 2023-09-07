@@ -1,12 +1,10 @@
 const { EmbedBuilder } = require("discord.js");
-const Account = require("../../../../structs/Account.js");
 
 module.exports = {
   name: "portfolio",
   run: async (client, interaction) => {
-    const account = new Account();
     const user = interaction.options.getUser("user");
-    const portfolio = await account.portfolio(user.id);
+    const portfolio = await client.account.portfolio(user.id);
 
     const embed = new EmbedBuilder()
       .setTitle(`${user.username}'s Portfolio`)

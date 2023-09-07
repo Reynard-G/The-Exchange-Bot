@@ -1,5 +1,4 @@
 const { EmbedBuilder, ApplicationCommandType } = require("discord.js");
-const Stocks = require("../../structs/Stocks.js");
 
 module.exports = {
   name: "companies",
@@ -7,10 +6,8 @@ module.exports = {
   cooldown: 3000,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
-    const stock = new Stocks();
-
     // Filter companies that have `delisted` set to 1
-    const companies = (await stock.companies()).filter(company => company.delisted === 0);
+    const companies = (await client.stocks.companies()).filter(company => company.delisted === 0);
 
     const embed = new EmbedBuilder()
       .setTitle("Companies")

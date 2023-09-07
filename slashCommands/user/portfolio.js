@@ -1,5 +1,4 @@
 const { EmbedBuilder, ApplicationCommandType } = require("discord.js");
-const Account = require("../../structs/Account.js");
 
 module.exports = {
   name: "portfolio",
@@ -7,8 +6,7 @@ module.exports = {
   cooldown: 3000,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
-    const account = new Account();
-    const portfolio = await account.portfolio(interaction.user.id);
+    const portfolio = await client.account.portfolio(interaction.user.id);
 
     const embed = new EmbedBuilder()
       .setTitle("Portfolio")

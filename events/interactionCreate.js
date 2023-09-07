@@ -1,6 +1,5 @@
 const { EmbedBuilder, Collection, PermissionsBitField } = require("discord.js");
 const { NotRegisteredError } = require("../structs/Errors.js");
-const Account = require("../structs/Account.js");
 const moment = require("moment");
 const client = require("..");
 
@@ -87,8 +86,7 @@ client.on("interactionCreate", async interaction => {
 		}
 
 		try {
-			const account = new Account();
-			const isRegistered = await account.isRegistered(interaction.user.id);
+			const isRegistered = await client.account.isRegistered(interaction.user.id);
 
 			if (!isRegistered) throw new NotRegisteredError(interaction.user.id);
 

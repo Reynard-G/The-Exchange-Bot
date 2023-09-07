@@ -1,8 +1,5 @@
 const { EmbedBuilder } = require("discord.js");
 const Decimal = require("decimal.js-light");
-const Account = require("../../../../structs/Account.js");
-const Stocks = require("../../../../structs/Stocks.js");
-const { InvalidLimitPriceError } = require("../../../../structs/Errors.js");
 
 module.exports = {
   name: "sell",
@@ -16,17 +13,9 @@ module.exports = {
       limit_price: min_price,
     };
 
-    const stocks = new Stocks();
-    const share_price = await stocks.price(ticker);
+    const share_price = await client.stocks.price(ticker);
 
-    // Check if min_price is <= to the share price
-    /*if (new Decimal(min_price).gt(share_price)) {
-      throw new InvalidLimitPriceError(min_price);
-    }*/
-
-    await stocks.sell(interaction.user.id, ticker, amount, "LIMIT", order_type_details);
-
-    const account = new Account();
+    await client.stocks.sell(interaction.user.id, ticker, amount, "LIMIT", order_type_details);
 
     const embed = new EmbedBuilder()
       .setTitle("Limit Sell Order")
@@ -34,9 +23,9 @@ module.exports = {
       .addFields(
         { name: "Ticker", value: ticker, inline: true },
         { name: "Share(s)", value: amount.toString(), inline: true },
-        { name: "Price Per Share", value: account.formatCurrency(share_price), inline: true },
-        { name: "Total", value: account.formatCurrency(new Decimal(min_price).mul(amount)), inline: true },
-        { name: "Min. Price Per Share", value: account.formatCurrency(min_price), inline: true },
+        { name: "Price Per Share", value: client.utils.formatCurrency(share_price), inline: true },
+        { name: "Total", value: client.utils.formatCurrency(new Decimal(min_price).mul(amount)), inline: true },
+        { name: "Min. Price Per Share", value: client.utils.formatCurrency(min_price), inline: true },
         { name: "Order Type", value: "LIMIT", inline: true },
         { name: "Transaction Type", value: "SELL", inline: true },
       )

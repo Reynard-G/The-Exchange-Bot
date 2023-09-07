@@ -1,5 +1,4 @@
 const { EmbedBuilder } = require("discord.js");
-const Stocks = require("../../../../structs/Stocks.js");
 
 module.exports = {
   name: "setimage",
@@ -12,8 +11,7 @@ module.exports = {
     const arrayBuffer = await res.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const stocks = new Stocks();
-    await stocks.setImage(ticker, buffer);
+    await client.stocks.setImage(ticker, buffer);
 
     const embed = new EmbedBuilder()
       .setTitle("Success")

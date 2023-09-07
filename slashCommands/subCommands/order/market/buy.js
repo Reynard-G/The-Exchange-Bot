@@ -1,7 +1,5 @@
 const { EmbedBuilder } = require("discord.js");
 const Decimal = require("decimal.js-light");
-const Account = require("../../../../structs/Account.js");
-const Stocks = require("../../../../structs/Stocks.js");
 
 module.exports = {
   name: "buy",
@@ -13,12 +11,9 @@ module.exports = {
       order_transaction_type: "BUY"
     };
 
-    const stocks = new Stocks(client);
-    const share_price = await stocks.price(ticker);
+    const share_price = await client.stocks.price(ticker);
 
-    await stocks.buy(interaction.user.id, ticker, amount, "MARKET", order_type_details);
-
-    const account = new Account();
+    await client.stocks.buy(interaction.user.id, ticker, amount, "MARKET", order_type_details);
 
     const embed = new EmbedBuilder()
       .setTitle("Market Buy Order")
@@ -26,8 +21,8 @@ module.exports = {
       .addFields(
         { name: "Ticker", value: ticker, inline: true },
         { name: "Share(s)", value: amount.toString(), inline: true },
-        { name: "Price Per Share", value: account.formatCurrency(share_price), inline: true },
-        { name: "Total", value: account.formatCurrency(new Decimal(share_price).mul(amount)), inline: true },
+        { name: "Price Per Share", value: client.utils.formatCurrency(share_price), inline: true },
+        { name: "Total", value: client.utils.formatCurrency(new Decimal(share_price).mul(amount)), inline: true },
         { name: "Order Type", value: "MARKET", inline: true },
         { name: "Transaction Type", value: "BUY", inline: true },
       )

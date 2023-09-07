@@ -1,5 +1,4 @@
 const { EmbedBuilder } = require("discord.js");
-const Stocks = require("../../../../structs/Stocks.js");
 
 module.exports = {
   name: "shareholders",
@@ -7,8 +6,7 @@ module.exports = {
     const ticker = interaction.options.getString("ticker").toUpperCase();
     const exchange_discord_id = interaction.applicationId;
 
-    const stocks = new Stocks();
-    const shareholders = await stocks.shareholders(ticker, exchange_discord_id);
+    const shareholders = await client.stocks.shareholders(ticker, exchange_discord_id);
 
     const embed = new EmbedBuilder()
       .setTitle("Shareholders")

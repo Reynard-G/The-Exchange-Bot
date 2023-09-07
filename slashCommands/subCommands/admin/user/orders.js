@@ -1,12 +1,10 @@
 const { EmbedBuilder } = require("discord.js");
-const Account = require("../../../../structs/Account.js");
 
 module.exports = {
   name: "orders",
   run: async (client, interaction) => {
-    const account = new Account();
     const user = interaction.options.getUser("user");
-    const orders = await account.orders(user.id);
+    const orders = await client.account.orders(user.id);
 
     const embed = new EmbedBuilder()
       .setTitle(`${user.username}'s Orders`)
@@ -23,7 +21,7 @@ module.exports = {
           return {
             name: order.ticker,
             value: `**ID:** ${order.id}` +
-              `\n**Amount:** ${order.fulfilled_amount + order.remaining_amount} share(s) @ ${account.formatCurrency(order.price_per_share)} per share` +
+              `\n**Amount:** ${order.fulfilled_amount + order.remaining_amount} share(s) @ ${client.utils.formatCurrency(order.price_per_share)} per share` +
               `\n**Order Type:** ${order.order_type}` +
               `\n**Fulfillment Status:** ${order.fulfilled_amount}/${order.fulfilled_amount + order.remaining_amount} shares fulfilled`
           };

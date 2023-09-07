@@ -1,15 +1,26 @@
-const client = require("../index.js");
-const Account = require("./Account.js");
+const db = require("../mysql.js");
 const Decimal = require("decimal.js-light");
 const moment = require("moment-timezone");
-const { InvalidStockTickerError, FrozenStockError, FrozenUserError, InsufficientFundsError, InvalidSharesAmountError, ImageTooLargeError, ConflictingError } = require("./Errors.js");
+const {
+  InvalidStockTickerError,
+  FrozenStockError,
+  FrozenUserError,
+  InsufficientFundsError,
+  InvalidSharesAmountError,
+  ImageTooLargeError,
+  ConflictingError
+} = require("./Errors.js");
 
 module.exports = class Stocks {
-
-  constructor() {
-    this.account = new Account();
-  }
-
+  /**
+   * Buy a specified amount of shares of a ticker
+   * 
+   * @param {String} discord_id 
+   * @param {String} ticker 
+   * @param {Number} amount 
+   * @param {String} order_type 
+   * @param {Object} order_type_details 
+   */
   async buy(discord_id, ticker, amount, order_type, order_type_details) {
     const stock = await this.ticker(ticker);
     if (!stock) {
@@ -21,7 +32,7 @@ module.exports = class Stocks {
     }
 
     // Check if account is frozen
-    const isFrozen = await this.account.isFrozen(discord_id);
+    const isFrozen = await client.account.isFrozen(discord_id);
     if (isFrozen) {
       throw new FrozenUserError(discord_id);
     }
@@ -30,7 +41,7 @@ module.exports = class Stocks {
     const price_per_share = stock.price;
     const total_price = new Decimal(price_per_share).mul(amount);
     const fee = new Decimal(total_price).mul(process.env.ORDER_FEE_PERCENTAGE).toNumber();
-    const balance = await this.account.balance(discord_id);
+    const balance = await client.account.balance(discord_id);
     if (balance < total_price.add(fee).toNumber()) {
       throw new InsufficientFundsError(discord_id, total_price, balance);
     }
@@ -40,6 +51,15 @@ module.exports = class Stocks {
     await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
   }
 
+  /**
+   * Sell a specified amount of shares of a ticker
+   * 
+   * @param {String} discord_id 
+   * @param {String} ticker 
+   * @param {Number} amount 
+   * @param {String} order_type 
+   * @param {Object} order_type_details 
+   */
   async sell(discord_id, ticker, amount, order_type, order_type_details) {
     const stock = await this.ticker(ticker);
     if (!stock) {
@@ -51,14 +71,14 @@ module.exports = class Stocks {
     }
 
     // Check if account is frozen
-    const isFrozen = await this.account.isFrozen(discord_id);
+    const isFrozen = await client.account.isFrozen(discord_id);
     if (isFrozen) {
       throw new FrozenUserError(discord_id);
     }
 
     // Check if account has enough shares to sell
     const price_per_share = stock.price;
-    const shares = await this.account.portfolio(discord_id);
+    const shares = await client.account.portfolio(discord_id);
     const ticker_shares = shares.find(share => share.ticker === ticker.toUpperCase());
     if (!ticker_shares || parseInt(ticker_shares.total_shares) < amount) {
       throw new InsufficientFundsError(discord_id, amount, shares[ticker.toUpperCase()] || 0);
@@ -69,8 +89,18 @@ module.exports = class Stocks {
     await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
   }
 
+  /**
+   * Process an order and match it with other orders
+   * 
+   * @param {String} discord_id 
+   * @param {String} ticker 
+   * @param {Number} amount 
+   * @param {Number} price_per_share 
+   * @param {String} order_type 
+   * @param {Object} order_type_details 
+   */
   async processOrder(discord_id, ticker, amount, price_per_share, order_type, order_type_details) {
-    const original_account_id = await this.account.databaseID(discord_id);
+    const original_account_id = await client.account.databaseID(discord_id);
     let leftoverAmount = new Decimal(amount);
 
     let queryParams;
@@ -81,7 +111,7 @@ module.exports = class Stocks {
     }
 
     // Get all orders that match the order type and ticker
-    const orders = await client.query(`
+    const orders = await db.query(`
       SELECT *
       FROM orders
       WHERE ticker = ?
@@ -108,7 +138,7 @@ module.exports = class Stocks {
       const updated_remaining_amount = new Decimal(remaining_amount).minus(current_order_amount);
 
       // Update the order fulfilled & remaining amounts
-      await client.query(`
+      await db.query(`
         UPDATE orders
         SET fulfilled_amount = fulfilled_amount + ?,
             remaining_amount = remaining_amount - ?
@@ -123,16 +153,16 @@ module.exports = class Stocks {
 
       // If the order is a buy, include the fee in the transaction
       if (order_type_details.order_transaction_type === "BUY") {
-        await client.query(transactionQuery,
+        await db.query(transactionQuery,
           [original_account_id, account_id, id, total_price, order_fee, ticker, current_order_amount.toNumber(), "DR", "CR", `Bought ${current_order_amount} shares of ${ticker} at $${price_per_share} per share`]
         );
-        await client.query(transactionQuery,
+        await db.query(transactionQuery,
           [account_id, original_account_id, id, total_price, 0, ticker, current_order_amount.toNumber(), "CR", "DR", `Sold ${current_order_amount} shares of ${ticker} at $${price_per_share} per share`]
         );
 
         // Check if the matching order is an IPO order
         if (ipo === 1) {
-          await client.query(`
+          await db.query(`
             UPDATE tickers
             SET available_shares = available_shares - ?
             WHERE ticker = ?`,
@@ -140,17 +170,17 @@ module.exports = class Stocks {
           );
         }
       } else {
-        await client.query(transactionQuery,
+        await db.query(transactionQuery,
           [original_account_id, account_id, id, total_price, 0, ticker, current_order_amount.toNumber(), "CR", "DR", `Sold ${current_order_amount} shares of ${ticker} at $${price_per_share} per share`]
         );
-        await client.query(transactionQuery,
+        await db.query(transactionQuery,
           [account_id, original_account_id, id, total_price, order_fee, ticker, current_order_amount.toNumber(), "DR", "CR", `Bought ${current_order_amount} shares of ${ticker} at $${price_per_share} per share`]
         );
       }
 
       // Update fulfilled order to inactive if remaining amount is 0
       if (updated_remaining_amount.eq(0)) {
-        await client.query(`
+        await db.query(`
           UPDATE orders
           SET active = 0
           WHERE id = ?`,
@@ -168,7 +198,7 @@ module.exports = class Stocks {
     }
 
     // Create a new order if there is any leftover amount, else create a empty order
-    await client.query(`
+    await db.query(`
       INSERT INTO orders (account_id, ticker, amount, price_per_share, fulfilled_amount, remaining_amount, order_transaction_type, order_type, limit_price, active)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [original_account_id, ticker, new Decimal(price_per_share).mul(amount).toNumber(), price_per_share, new Decimal(amount).minus(leftoverAmount).toNumber(), leftoverAmount.toNumber(), order_type_details.order_transaction_type, order_type, order_type_details.limit_price, leftoverAmount.gt(0) ? 1 : 0]
@@ -176,7 +206,7 @@ module.exports = class Stocks {
 
     // Update the stock price
     const newStockPrice = await this.updatedPrice(amount, ticker, order_type_details.order_transaction_type);
-    await client.query(`
+    await db.query(`
       UPDATE tickers
       SET price = ?
       WHERE ticker = ?`,
@@ -186,8 +216,14 @@ module.exports = class Stocks {
     client.logger.info(`Updated stock price from ${price_per_share} to ${newStockPrice} for ${ticker}`);
   }
 
+  /**
+   * Get all details of a specified ticker
+   * 
+   * @param {String} ticker - The ticker to get the details of
+   * @returns {Object} The ticker details 
+   */
   async ticker(ticker) {
-    const stock = await client.query("SELECT * FROM tickers WHERE ticker = ?", [ticker]);
+    const stock = await db.query("SELECT * FROM tickers WHERE ticker = ?", [ticker]);
 
     if (stock.length === 0) {
       throw new InvalidStockTickerError(ticker);
@@ -196,30 +232,54 @@ module.exports = class Stocks {
     }
   }
 
+  /**
+   * Get the price of a specified ticker
+   * 
+   * @param {String} ticker - The ticker to get the price of
+   * @returns {Number} The price of the ticker
+   */
   async price(ticker) {
-    const price = (await client.query("SELECT price FROM tickers WHERE ticker = ?", [ticker]))[0].price;
+    const price = (await db.query("SELECT price FROM tickers WHERE ticker = ?", [ticker]))[0].price;
     return price;
   }
 
+  /**
+   * Get a list of all the tickers
+   * 
+   * @returns {Array<Object>} An array of all the tickers
+   */
   async companies() {
-    const companies = await client.query("SELECT ticker, company_name, frozen, delisted FROM tickers");
+    const companies = await db.query("SELECT ticker, company_name, frozen, delisted FROM tickers");
     return companies;
   }
 
+  /**
+   * Check if a ticker is frozen
+   * 
+   * @param {String} ticker - The ticker to check
+   * @returns {Boolean} Whether the ticker is frozen or not
+   */
   async isFrozen(ticker) {
-    const frozen = (await client.query("SELECT frozen FROM tickers WHERE ticker = ?", [ticker]))[0].frozen;
+    const frozen = (await db.query("SELECT frozen FROM tickers WHERE ticker = ?", [ticker]))[0].frozen;
     return frozen === 1;
   }
 
+  /**
+   * Check if a ticker is delisted
+   * 
+   * @param {String} ticker - The ticker to check
+   * @returns {Boolean} Whether the ticker is delisted or not
+   */
   async isDelisted(ticker) {
-    const delisted = (await client.query("SELECT delisted FROM tickers WHERE ticker = ?", [ticker]))[0].delisted;
+    const delisted = (await db.query("SELECT delisted FROM tickers WHERE ticker = ?", [ticker]))[0].delisted;
     return delisted === 1;
   }
 
   /**
-   * ADMIN COMMANDS
+   * Freeze a ticker
+   * 
+   * @param {String} ticker - The ticker to freeze
    */
-
   async freeze(ticker) {
     // Check if ticker exists
     const stock = await this.ticker(ticker);
@@ -233,11 +293,16 @@ module.exports = class Stocks {
     }
 
     // Freeze the specified stock
-    await client.query("UPDATE tickers SET frozen = 1 WHERE ticker = ?", [ticker]);
+    await db.query("UPDATE tickers SET frozen = 1 WHERE ticker = ?", [ticker]);
 
     client.emitter.emit("stockFrozen", ticker.toUpperCase());
   }
 
+  /**
+   * Unfreeze a ticker
+   * 
+   * @param {String} ticker - The ticker to unfreeze
+   */
   async unfreeze(ticker) {
     // Check if ticker exists
     const stock = await this.ticker(ticker);
@@ -251,11 +316,16 @@ module.exports = class Stocks {
     }
 
     // Unfreeze the specified stock
-    await client.query("UPDATE tickers SET frozen = 0 WHERE ticker = ?", [ticker]);
+    await db.query("UPDATE tickers SET frozen = 0 WHERE ticker = ?", [ticker]);
 
     client.emitter.emit("stockUnfrozen", ticker.toUpperCase());
   }
 
+  /**
+   * Delist a ticker
+   * 
+   * @param {String} ticker - The ticker to delist
+   */
   async delist(ticker) {
     // Check if ticker exists
     const stock = await this.ticker(ticker);
@@ -269,11 +339,16 @@ module.exports = class Stocks {
     }
 
     // Delist the specified stock
-    await client.query("UPDATE tickers SET delisted = 1 WHERE ticker = ?", [ticker]);
+    await db.query("UPDATE tickers SET delisted = 1 WHERE ticker = ?", [ticker]);
 
     client.emitter.emit("stockDelisted", ticker.toUpperCase());
   }
 
+  /**
+   * Relist a ticker
+   * 
+   * @param {String} ticker - The ticker to relist
+   */
   async relist(ticker) {
     // Check if ticker exists
     const stock = await this.ticker(ticker);
@@ -287,13 +362,23 @@ module.exports = class Stocks {
     }
 
     // Relist the specified stock
-    await client.query("UPDATE tickers SET delisted = 0 WHERE ticker = ?", [ticker]);
+    await db.query("UPDATE tickers SET delisted = 0 WHERE ticker = ?", [ticker]);
 
     client.emitter.emit("stockRelisted", ticker.toUpperCase());
   }
 
+  /**
+   * Create a new ticker
+   * 
+   * @param {String} ticker - The ticker for the company
+   * @param {String} company_name - The name of the company
+   * @param {Number} available_shares - The amount of shares available for purchase
+   * @param {Number} outstanding_shares - The amount of shares that are public
+   * @param {Number} total_outstanding_shares - The total amount of shares
+   * @param {Number} price - The price of the stock
+   */
   async create(ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price) {
-    await client.query(`
+    await db.query(`
       INSERT INTO tickers (ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price)
       VALUES (?, ?, ?, ?, ?, ?)`,
       [ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price]);
@@ -301,6 +386,12 @@ module.exports = class Stocks {
     client.emitter.emit("stockCreated", ticker.toUpperCase(), company_name, available_shares, outstanding_shares, total_outstanding_shares, price);
   }
 
+  /**
+   * Set the image of a ticker
+   * 
+   * @param {String} ticker - The ticker to set the image of
+   * @param {Buffer} imageBuffer - The image buffer to set
+   */
   async setImage(ticker, imageBuffer) {
     // Check image size is less than 16MB
     if (imageBuffer.length > 16777215) {
@@ -313,14 +404,20 @@ module.exports = class Stocks {
       throw new InvalidStockTickerError(ticker);
     }
 
-    await client.query("UPDATE tickers SET image = ? WHERE ticker = ?", [imageBuffer, ticker]);
+    await db.query("UPDATE tickers SET image = ? WHERE ticker = ?", [imageBuffer, ticker]);
 
     client.emitter.emit("imageUpdated", ticker.toUpperCase(), imageBuffer);
   }
 
+  /**
+   * Set the amount of public shares available for purchase
+   * 
+   * @param {String} ticker - The ticker to set the available shares of
+   * @param {Number} available_shares - The amount of shares available for purchase
+   */
   async setAvailableShares(ticker, available_shares) {
     // Check if available shares is a more than outstanding shares
-    const outstanding_shares = (await client.query("SELECT outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].outstanding_shares;
+    const outstanding_shares = (await db.query("SELECT outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].outstanding_shares;
     if (available_shares > outstanding_shares) {
       throw new InvalidSharesAmountError(available_shares);
     }
@@ -332,7 +429,7 @@ module.exports = class Stocks {
     }
 
     // Check if there is an active IPO order, if so, update the available shares
-    const ipo_order = (await client.query("SELECT * FROM orders WHERE ticker = ? AND ipo = 1 AND active = 1", [ticker]))[0];
+    const ipo_order = (await db.query("SELECT * FROM orders WHERE ticker = ? AND ipo = 1 AND active = 1", [ticker]))[0];
     if (Object.keys(ipo_order).length > 0) {
       const already_bought_shares = ipo_order.fulfilled_amount;
       const new_available_shares = new Decimal(available_shares).sub(already_bought_shares).toNumber();
@@ -341,18 +438,24 @@ module.exports = class Stocks {
       if (new_available_shares < 0) {
         throw new ConflictingError("Cannot set available shares to less than the amount of shares available for the IPO");
       } else {
-        await client.query("UPDATE orders SET remaining_amount = ? WHERE id = ?", [new_available_shares, ipo_order.id]);
+        await db.query("UPDATE orders SET remaining_amount = ? WHERE id = ?", [new_available_shares, ipo_order.id]);
       }
     }
 
-    await client.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
+    await db.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
 
     client.emitter.emit("availableSharesUpdated", ticker.toUpperCase(), ticker_details.available_shares, available_shares);
   }
 
+  /**
+   * Set the amount of public shares
+   * 
+   * @param {String} ticker - The ticker to set the outstanding shares of
+   * @param {Number} outstanding_shares - The amount of shares that are public
+   */
   async setOutstandingShares(ticker, outstanding_shares) {
     // Check if outstanding shares is a more than total outstanding shares
-    const total_outstanding_shares = (await client.query("SELECT total_outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].total_outstanding_shares;
+    const total_outstanding_shares = (await db.query("SELECT total_outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].total_outstanding_shares;
     if (outstanding_shares > total_outstanding_shares) {
       throw new InvalidSharesAmountError(outstanding_shares);
     }
@@ -363,14 +466,20 @@ module.exports = class Stocks {
       throw new InvalidStockTickerError(ticker);
     }
 
-    await client.query("UPDATE tickers SET outstanding_shares = ? WHERE ticker = ?", [outstanding_shares, ticker]);
+    await db.query("UPDATE tickers SET outstanding_shares = ? WHERE ticker = ?", [outstanding_shares, ticker]);
 
     client.emitter.emit("outstandingSharesUpdated", ticker.toUpperCase(), ticker_details.outstanding_shares, outstanding_shares);
   }
 
+  /**
+   * Set the total amount of private & public shares
+   * 
+   * @param {String} ticker - The ticker to set the total outstanding shares of
+   * @param {Number} total_outstanding_shares - The total amount of shares
+   */
   async setTotalOutstandingShares(ticker, total_outstanding_shares) {
     // Check if total outstanding shares is a less than outstanding shares
-    const outstanding_shares = (await client.query("SELECT outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].outstanding_shares;
+    const outstanding_shares = (await db.query("SELECT outstanding_shares FROM tickers WHERE ticker = ?", [ticker]))[0].outstanding_shares;
     if (total_outstanding_shares < outstanding_shares) {
       throw new InvalidSharesAmountError(total_outstanding_shares);
     }
@@ -381,20 +490,57 @@ module.exports = class Stocks {
       throw new InvalidStockTickerError(ticker);
     }
 
-    await client.query("UPDATE tickers SET total_outstanding_shares = ? WHERE ticker = ?", [total_outstanding_shares, ticker]);
+    await db.query("UPDATE tickers SET total_outstanding_shares = ? WHERE ticker = ?", [total_outstanding_shares, ticker]);
 
     client.emitter.emit("totalOutstandingSharesUpdated", ticker.toUpperCase(), ticker_details.total_outstanding_shares, total_outstanding_shares);
   }
 
-  // method to get open, close, high, low prices for a ticker for a given date
-  async getOHLC(ticker, date) {
+  /**
+   * Get the OHLC (open, high, low, close) prices for a ticker for a given date range
+   * 
+   * @param {String} ticker - The ticker to get the OHLC prices of 
+   * @param {Date} start_date - The start date of the date range
+   * @param {Date} end_date - The end date of the date range
+   * @returns {Object} The OHLC prices for the ticker for the given date range
+   */
+  async getOHLC(ticker, start_date, end_date) {
+    // Check if ticker exists
+    const ticker_details = await this.ticker(ticker);
+    if (!ticker_details) {
+      throw new InvalidStockTickerError(ticker);
+    }
+
+    // Get each day's open, close, high, low prices for the ticker for the given date range
+    const prices = await db.query(`
+      SELECT
+        MIN(price) AS low,
+        MAX(price) AS high,
+        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) >= ? LIMIT 1) AS open,
+        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) <= ? ORDER BY date DESC LIMIT 1) AS close
+      FROM tickers t
+      JOIN historical_ticker_prices p ON t.id = p.ticker_id
+      WHERE t.ticker = ?
+        AND UNIX_TIMESTAMP(date) >= ?
+        AND UNIX_TIMESTAMP(date) <= ?
+      GROUP BY DATE(date)
+      ORDER BY date ASC`,
+      [start_date, end_date, ticker, start_date, end_date]
+    );
+
+    return prices[0];
   }
 
+  /**
+   * Get the daily percentage change for a ticker
+   * 
+   * @param {String} ticker - The ticker to get the daily percentage change of
+   * @returns {Number} The daily percentage change of the ticker
+   */
   async dailyPercentageChange(ticker) {
     // Get the midnight date in EST timezone
     const midnight_date = moment().tz("America/New_York").startOf("day").unix();
 
-    const prices = await client.query(`
+    const prices = await db.query(`
       SELECT 
         (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) >= ? LIMIT 1) AS open,
         t.price AS current
@@ -412,14 +558,23 @@ module.exports = class Stocks {
     return percentage_change;
   }
 
+  /**
+   * Set the price of a ticker
+   * 
+   * @param {String} ticker - The ticker to set the price of
+   * @param {Number} price - The price to set the ticker to
+   */
   async setPrice(ticker, price) {
-    await client.query("UPDATE tickers SET price = ? WHERE ticker = ?", [price, ticker]);
+    await db.query("UPDATE tickers SET price = ? WHERE ticker = ?", [price, ticker]);
   }
 
   /**
-   * UTILITY FUNCTIONS
+   * Get the shareholders of a ticker
+   * 
+   * @param {String} ticker - The ticker to get the shareholders of
+   * @param {String} exchange_discord_id - The discord id of the exchange bot
+   * @returns {Array<Object>} An array of the shareholders of the ticker
    */
-
   async shareholders(ticker, exchange_discord_id) {
     // Check if ticker exists
     const ticker_details = await this.ticker(ticker);
@@ -428,7 +583,7 @@ module.exports = class Stocks {
     }
 
     // Get shareholder through transactions, differentiate between CR and DR
-    const shareholders = await client.query(`
+    const shareholders = await db.query(`
       SELECT
         SUM(CASE
           WHEN ticker_transaction_type = "CR" THEN ticker_amount
@@ -445,14 +600,14 @@ module.exports = class Stocks {
     );
 
     // Return without The Exchange's account
-    const exchange_account_id = await this.account.databaseID(exchange_discord_id);
+    const exchange_account_id = await client.account.databaseID(exchange_discord_id);
     const filtered_shareholders = shareholders.filter(shareholder => shareholder.account_id !== exchange_account_id);
 
     // Get the usernames & discord ids of the shareholders
     const promises = filtered_shareholders.map(async (shareholder) => {
       const { account_id, total_shares } = shareholder;
-      const discord_id = await this.account.discordID(account_id);
-      const username = await this.account.username(discord_id);
+      const discord_id = await client.account.discordID(account_id);
+      const username = await client.account.username(discord_id);
       return { discord_id, username, shares: total_shares };
     });
 
@@ -460,6 +615,14 @@ module.exports = class Stocks {
     return results;
   }
 
+  /**
+   * Calculate the updated price of a ticker
+   * 
+   * @param {Number} amount - The amount of shares bought/sold
+   * @param {String} ticker - The ticker of the stock
+   * @param {String} transaction_type - The type of transaction (BUY/SELL)
+   * @returns {Number} The updated price of the ticker
+   */
   async updatedPrice(amount, ticker, transaction_type) {
     const ticker_details = await this.ticker(ticker);
     const { price, total_outstanding_shares } = ticker_details;

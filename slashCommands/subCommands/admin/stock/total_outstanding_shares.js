@@ -1,5 +1,4 @@
 const { EmbedBuilder } = require("discord.js");
-const Stocks = require("../../../../structs/Stocks.js");
 
 module.exports = {
   name: "total_outstanding_shares",
@@ -7,10 +6,9 @@ module.exports = {
     const ticker = interaction.options.getString("ticker").toUpperCase();
     const totalOutstandingShares = interaction.options.getInteger("amount");
 
-    const stocks = new Stocks();
-    const previousTotalOutstandingShares = (await stocks.ticker(ticker)).total_outstanding_shares;
+    const previousTotalOutstandingShares = (await client.stocks.ticker(ticker)).total_outstanding_shares;
 
-    await stocks.setTotalOutstandingShares(ticker, totalOutstandingShares);
+    await client.stocks.setTotalOutstandingShares(ticker, totalOutstandingShares);
 
     const embed = new EmbedBuilder()
       .setTitle("Total Outstanding Shares")

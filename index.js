@@ -17,6 +17,10 @@ const events = require('events');
 const fs = require('fs');
 require('dotenv').config();
 
+const Utils = require('./structs/Utils.js');
+const Stocks = require('./structs/Stocks.js');
+const Account = require('./structs/Account.js');
+
 client.aliases = new Collection();
 client.slashCommands = new Collection();
 client.subCommands = new Collection();
@@ -24,6 +28,10 @@ client.buttons = new Collection();
 
 client.emitter = new events.EventEmitter();
 client.emitter.setMaxListeners(25);
+
+client.utils = new Utils();
+client.stocks = new Stocks();
+client.account = new Account();
 
 client.logger = winston.createLogger({
 	level: 'info',

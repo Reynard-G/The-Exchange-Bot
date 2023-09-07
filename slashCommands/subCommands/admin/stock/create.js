@@ -1,6 +1,4 @@
 const { EmbedBuilder } = require("discord.js");
-const Account = require("../../../../structs/Account.js");
-const Stocks = require("../../../../structs/Stocks.js");
 
 module.exports = {
   name: "create",
@@ -12,10 +10,7 @@ module.exports = {
     const total_outstanding_shares = interaction.options.getInteger("total_outstanding_shares");
     const price = interaction.options.getNumber("price");
 
-    const stocks = new Stocks();
-    await stocks.create(ticker, name, available_shares, outstanding_shares, total_outstanding_shares, price);
-
-    const account = new Account();
+    await client.stocks.create(ticker, name, available_shares, outstanding_shares, total_outstanding_shares, price);
 
     const embed = new EmbedBuilder()
       .setTitle("Stock Created")
@@ -25,7 +20,7 @@ module.exports = {
         { name: "Available Shares", value: available_shares.toString() },
         { name: "Outstanding Shares", value: outstanding_shares.toString() },
         { name: "Total Outstanding Shares", value: total_outstanding_shares.toString() },
-        { name: "Price", value: account.formatCurrency(price) }
+        { name: "Price", value: client.utils.formatCurrency(price) }
       )
       .setColor("Green")
       .setTimestamp()

@@ -1,5 +1,4 @@
 const { EmbedBuilder, ApplicationCommandType } = require("discord.js");
-const Account = require("../../structs/Account.js");
 const PagedEmbed = require("../../structs/PagedEmbed.js");
 
 module.exports = {
@@ -8,8 +7,7 @@ module.exports = {
   cooldown: 3000,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
-    const account = new Account();
-    const transactions = await account.transactions(interaction.user.id);
+    const transactions = await client.account.transactions(interaction.user.id);
 
     const embed = new EmbedBuilder()
       .setTitle("Transactions")
@@ -54,11 +52,11 @@ module.exports = {
         fieldTitle = ` ${titleMap[transactionType]}`;
 
         if (ticker && ticker_amount && amount != 0) {
-          fieldValue = `**Ticker:** ${ticker}\n**Shares Amount:** ${ticker_amount}\n**Amount:** ${account.formatCurrency(amount)}`;
+          fieldValue = `**Ticker:** ${ticker}\n**Shares Amount:** ${ticker_amount}\n**Amount:** ${client.utils.formatCurrency(amount)}`;
         } else if (ticker && ticker_amount) {
           fieldValue = `**Ticker:** ${ticker}\n**Shares Amount:** ${ticker_amount}`;
         } else {
-          fieldValue = `**Amount:** ${account.formatCurrency(amount)}`;
+          fieldValue = `**Amount:** ${client.utils.formatCurrency(amount)}`;
         }
 
         if (note) fieldValue += `\n**Note:** ${note}`;

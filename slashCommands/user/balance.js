@@ -1,5 +1,4 @@
 const { EmbedBuilder, ApplicationCommandType } = require("discord.js");
-const Account = require("../../structs/Account.js");
 
 module.exports = {
   name: "balance",
@@ -7,15 +6,14 @@ module.exports = {
   cooldown: 3000,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
-    const account = new Account();
-    const balance = await account.balance(interaction.user.id);
+    const balance = await client.account.balance(interaction.user.id);
 
     const embed = new EmbedBuilder()
       .setTitle("Balance")
       .setFields(
         {
           name: "Balance:",
-          value: `${account.formatCurrency(balance)}`
+          value: `${client.utils.formatCurrency(balance)}`
         }
       )
       .setColor("#BB8FCE")

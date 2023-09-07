@@ -1,36 +1,66 @@
-const client = require("../index.js");
+const db = require("../mysql.js");
 const { AlreadyRegisteredError } = require("./Errors.js");
 
 module.exports = class Account {
+  /**
+   * Register a new account to a specific user
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @param {String} username - The Minecraft Username of the user
+   */
   async register(discordID, username) {
     const isRegistered = await this.isRegistered(discordID);
     if (isRegistered) throw new AlreadyRegisteredError(discordID);
 
-    await client.query("INSERT INTO accounts (discord_id, ign) VALUES (?, ?)",
+    await db.query("INSERT INTO accounts (discord_id, ign) VALUES (?, ?)",
       [discordID, username]);
   }
 
+  /**
+   * Get the database ID of a user
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @returns {Number} - The database ID of the user
+   */
   async databaseID(discordID) {
-    const id = (await client.query("SELECT id FROM accounts WHERE discord_id = ?",
+    const id = (await db.query("SELECT id FROM accounts WHERE discord_id = ?",
       [discordID]));
     return id.length > 0 ? id[0].id : null;
   }
 
+  /**
+   * Get the Discord ID of a user
+   * 
+   * @param {Number} databaseID - The database ID of the user
+   * @returns {Number} - The Discord ID of the user
+   */
   async discordID(databaseID) {
-    const id = (await client.query("SELECT discord_id FROM accounts WHERE id = ?",
+    const id = (await db.query("SELECT discord_id FROM accounts WHERE id = ?",
       [databaseID]));
     return id.length > 0 ? id[0].discord_id : null;
   }
 
+  /**
+   * Get the Minecraft Username of a user
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @returns {String} - The Minecraft Username of the user
+   */
   async username(discordID) {
-    const username = (await client.query("SELECT ign FROM accounts WHERE discord_id = ?",
+    const username = (await db.query("SELECT ign FROM accounts WHERE discord_id = ?",
       [discordID]));
     return username.length > 0 ? username[0].ign : null;
   }
 
+  /**
+   * Get the balance of a user
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @returns {Number} - The balance of the user
+   */
   async balance(discordID) {
     const accountID = await this.databaseID(discordID);
-    const result = await client.query(`
+    const result = await db.query(`
       SELECT 
           t.account_id,
           SUM(CASE 
@@ -57,29 +87,53 @@ module.exports = class Account {
     return balance;
   }
 
+  /**
+   * Get the transactions history of a user
+   * 
+   * @param {Number} discord_id - The Discord ID of the user
+   * @returns {Array<Object>} - The transactions history of the user
+   */
   async transactions(discord_id) {
     const account_id = await this.databaseID(discord_id);
-    const transactions = (await client.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM transactions WHERE account_id = ? ORDER BY created_at DESC",
+    const transactions = (await db.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM transactions WHERE account_id = ? ORDER BY created_at DESC",
       [account_id]));
     return transactions.length > 0 ? transactions : null;
   }
 
+  /**
+   * Get the current active orders of a user
+   * 
+   * @param {Number} discord_id - The Discord ID of the user
+   * @returns {Array<Object>} - The current active orders of the user
+   */
   async orders(discord_id) {
     const account_id = await this.databaseID(discord_id);
-    const orders = (await client.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM orders WHERE account_id = ? AND active = 1 ORDER BY created_at DESC",
+    const orders = (await db.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM orders WHERE account_id = ? AND active = 1 ORDER BY created_at DESC",
       [account_id]));
     return orders.length > 0 ? orders : null;
   }
 
+  /**
+   * Get a specific order of a user
+   * 
+   * @param {Number} orderID - The ID of the order
+   * @returns {Object<Array>} - The order of a user
+   */
   async order(orderID) {
-    const order = (await client.query("SELECT * FROM orders WHERE id = ?",
+    const order = (await db.query("SELECT * FROM orders WHERE id = ?",
       [orderID]));
     return order.length > 0 ? order[0] : null;
   }
 
+  /**
+   * Get the portfolio of a user
+   * 
+   * @param {Number} discord_id - The Discord ID of the user
+   * @returns {Array<Object>} - The portfolio of the user
+   */
   async portfolio(discord_id) {
     const account_id = await this.databaseID(discord_id);
-    const portfolio = (await client.query(`
+    const portfolio = (await db.query(`
       SELECT 
           t.account_id, t.ticker, 
           SUM(CASE 
@@ -110,92 +164,125 @@ module.exports = class Account {
   }
 
   /**
-   * ADMIN COMMANDS
+   * Freeze a user's account
+   * 
+   * @param {Number} discordID - The Discord ID of the user 
    */
-
   async freeze(discordID) {
-    await client.query("UPDATE accounts SET frozen = 1 WHERE discord_id = ?",
+    await db.query("UPDATE accounts SET frozen = 1 WHERE discord_id = ?",
       [discordID]);
 
     client.emitter.emit("accountFrozen", discordID);
   }
 
+  /**
+   * Unfreeze a user's account
+   * 
+   * @param {Number} discordID - The Discord ID of the user 
+   */
   async unfreeze(discordID) {
-    await client.query("UPDATE accounts SET frozen = 0 WHERE discord_id = ?",
+    await db.query("UPDATE accounts SET frozen = 0 WHERE discord_id = ?",
       [discordID]);
 
     client.emitter.emit("accountUnfrozen", discordID);
   }
 
   /**
-   * ALLOW NOTES FOR THE BELOW METHODS
+   * Add shares to a user's account
    * 
-   * WILL BE USED FOR WITHDRAWALS AND DEPOSITS
+   * @param {Number} discordID - The Discord ID of the user
+   * @param {String} ticker - The ticker of the stock
+   * @param {Number} amount - The amount of shares to add
+   * @param {String} note - The note to add to the transaction
    */
-
   async addShares(discordID, ticker, amount, note) {
     const accountID = await this.databaseID(discordID);
 
     if (!note) note = `Admin added ${amount} shares of ${ticker} to ${accountID}`;
 
-    await client.query("INSERT INTO transactions (account_id, ticker, ticker_amount, ticker_transaction_type, note) VALUES (?, ?, ?, ?, ?)",
+    await db.query("INSERT INTO transactions (account_id, ticker, ticker_amount, ticker_transaction_type, note) VALUES (?, ?, ?, ?, ?)",
       [accountID, ticker, amount, "CR", note]);
 
     client.emitter.emit("sharesAdded", discordID, ticker, amount, note);
   }
 
+  /**
+   * Remove shares from a user's account
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @param {String} ticker - The ticker of the stock
+   * @param {Number} amount - The amount of shares to remove
+   * @param {String} note - The note to add to the transaction
+   */
   async removeShares(discordID, ticker, amount, note) {
     const accountID = await this.databaseID(discordID);
 
     if (!note) note = `Admin removed ${amount} shares of ${ticker} from ${accountID}`;
 
-    await client.query("INSERT INTO transactions (account_id, ticker, ticker_amount, ticker_transaction_type, note) VALUES (?, ?, ?, ?, ?)",
+    await db.query("INSERT INTO transactions (account_id, ticker, ticker_amount, ticker_transaction_type, note) VALUES (?, ?, ?, ?, ?)",
       [accountID, ticker, amount, "DR", note]);
 
     client.emitter.emit("sharesRemoved", discordID, ticker, amount, note);
   }
 
+  /**
+   * Add balance to a user's account
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @param {Number} amount - The amount of balance to add
+   * @param {String} note - The note to add to the transaction
+   */
   async addBalance(discordID, amount, note) {
     const accountID = await this.databaseID(discordID);
 
-    if (!note) note = `Admin added ${this.formatCurrency(amount)} to ${accountID}`;
+    if (!note) note = `Admin added ${client.utils.formatCurrency(amount)} to ${accountID}`;
 
-    await client.query("INSERT INTO transactions (account_id, amount, amount_transaction_type, note) VALUES (?, ?, ?, ?)",
+    await db.query("INSERT INTO transactions (account_id, amount, amount_transaction_type, note) VALUES (?, ?, ?, ?)",
       [accountID, amount, "CR", note]);
 
     client.emitter.emit("balanceAdded", discordID, amount, note);
   }
 
+  /**
+   * Remove balance from a user's account
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @param {Number} amount - The amount of balance to remove
+   * @param {String} note - The note to add to the transaction
+   */
   async removeBalance(discordID, amount, note) {
     const accountID = await this.databaseID(discordID);
 
-    if (!note) note = `Admin removed ${this.formatCurrency(amount)} from ${accountID}`;
+    if (!note) note = `Admin removed ${client.utils.formatCurrency(amount)} from ${accountID}`;
 
-    await client.query("INSERT INTO transactions (account_id, amount, amount_transaction_type, note) VALUES (?, ?, ?, ?)",
+    await db.query("INSERT INTO transactions (account_id, amount, amount_transaction_type, note) VALUES (?, ?, ?, ?)",
       [accountID, amount, "DR", note]);
 
     client.emitter.emit("balanceRemoved", discordID, amount, note);
   }
 
   /**
-   * UTILITY METHODS
+   * Check if a user is registered
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @returns {Boolean} - Whether or not the user is registered
    */
-
   async isRegistered(discordID) {
-    const registered = (await client.query("SELECT IF(id IS NULL, false, true) AS registered FROM accounts WHERE discord_id = ?",
+    const registered = (await db.query("SELECT IF(id IS NULL, false, true) AS registered FROM accounts WHERE discord_id = ?",
       [discordID]));
 
     return registered.length > 0 ? true : false;
   }
 
+  /**
+   * Check if a user is frozen
+   * 
+   * @param {Number} discordID - The Discord ID of the user 
+   * @returns {Boolean} - Whether or not the user is frozen
+   */
   async isFrozen(discordID) {
-    const frozen = (await client.query("SELECT IF(frozen = 1, true, false) AS frozen FROM accounts WHERE discord_id = ?",
+    const frozen = (await db.query("SELECT IF(frozen = 1, true, false) AS frozen FROM accounts WHERE discord_id = ?",
       [discordID]))[0].frozen;
     return frozen;
-  }
-
-  formatCurrency(amount) {
-    // format to 4 decimal places
-    return Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 4 }).format(amount);
   }
 }
