@@ -50,9 +50,9 @@ module.exports = class Stocks {
       throw new InsufficientFundsError(discord_id, total_price, balance);
     }
 
-    this.client.emitter.emit("buy", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
+    this.client.emitter.emit("buy", discord_id, ticker, amount, price_per_share, order_type, order_type_details);
 
-    await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
+    await this.processOrder(discord_id, ticker, amount, stock.price, order_type, order_type_details);
   }
 
   /**
@@ -83,14 +83,14 @@ module.exports = class Stocks {
     // Check if account has enough shares to sell
     const price_per_share = stock.price;
     const shares = await this.client.account.portfolio(discord_id);
-    const ticker_shares = shares.find(share => share.ticker === ticker.toUpperCase());
+    const ticker_shares = shares.find(share => share.ticker === ticker);
     if (!ticker_shares || parseInt(ticker_shares.total_shares) < amount) {
-      throw new InsufficientFundsError(discord_id, amount, shares[ticker.toUpperCase()] || 0);
+      throw new InsufficientFundsError(discord_id, amount, shares[ticker] || 0);
     }
 
-    this.client.emitter.emit("sell", ticker.toUpperCase(), amount, price_per_share, order_type, order_type_details);
+    this.client.emitter.emit("sell", discord_id, ticker, amount, price_per_share, order_type, order_type_details);
 
-    await this.processOrder(discord_id, ticker.toUpperCase(), amount, stock.price, order_type, order_type_details);
+    await this.processOrder(discord_id, ticker, amount, stock.price, order_type, order_type_details);
   }
 
   /**
@@ -299,7 +299,7 @@ module.exports = class Stocks {
     // Freeze the specified stock
     await db.query("UPDATE tickers SET frozen = 1 WHERE ticker = ?", [ticker]);
 
-    this.client.emitter.emit("stockFrozen", ticker.toUpperCase());
+    this.client.emitter.emit("stockFrozen", ticker);
   }
 
   /**
@@ -322,7 +322,7 @@ module.exports = class Stocks {
     // Unfreeze the specified stock
     await db.query("UPDATE tickers SET frozen = 0 WHERE ticker = ?", [ticker]);
 
-    this.client.emitter.emit("stockUnfrozen", ticker.toUpperCase());
+    this.client.emitter.emit("stockUnfrozen", ticker);
   }
 
   /**
@@ -345,7 +345,7 @@ module.exports = class Stocks {
     // Delist the specified stock
     await db.query("UPDATE tickers SET delisted = 1 WHERE ticker = ?", [ticker]);
 
-    this.client.emitter.emit("stockDelisted", ticker.toUpperCase());
+    this.client.emitter.emit("stockDelisted", ticker);
   }
 
   /**
@@ -368,7 +368,7 @@ module.exports = class Stocks {
     // Relist the specified stock
     await db.query("UPDATE tickers SET delisted = 0 WHERE ticker = ?", [ticker]);
 
-    this.client.emitter.emit("stockRelisted", ticker.toUpperCase());
+    this.client.emitter.emit("stockRelisted", ticker);
   }
 
   /**
@@ -387,7 +387,7 @@ module.exports = class Stocks {
       VALUES (?, ?, ?, ?, ?, ?)`,
       [ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price]);
 
-    this.client.emitter.emit("stockCreated", ticker.toUpperCase(), company_name, available_shares, outstanding_shares, total_outstanding_shares, price);
+    this.client.emitter.emit("stockCreated", ticker, company_name, available_shares, outstanding_shares, total_outstanding_shares, price);
   }
 
   /**
@@ -410,7 +410,7 @@ module.exports = class Stocks {
 
     await db.query("UPDATE tickers SET image = ? WHERE ticker = ?", [imageBuffer, ticker]);
 
-    this.client.emitter.emit("imageUpdated", ticker.toUpperCase(), imageBuffer);
+    this.client.emitter.emit("imageUpdated", ticker, imageBuffer);
   }
 
   /**
@@ -448,7 +448,7 @@ module.exports = class Stocks {
 
     await db.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
 
-    this.client.emitter.emit("availableSharesUpdated", ticker.toUpperCase(), ticker_details.available_shares, available_shares);
+    this.client.emitter.emit("availableSharesUpdated", ticker, ticker_details.available_shares, available_shares);
   }
 
   /**
@@ -472,7 +472,7 @@ module.exports = class Stocks {
 
     await db.query("UPDATE tickers SET outstanding_shares = ? WHERE ticker = ?", [outstanding_shares, ticker]);
 
-    this.client.emitter.emit("outstandingSharesUpdated", ticker.toUpperCase(), ticker_details.outstanding_shares, outstanding_shares);
+    this.client.emitter.emit("outstandingSharesUpdated", ticker, ticker_details.outstanding_shares, outstanding_shares);
   }
 
   /**
@@ -496,7 +496,7 @@ module.exports = class Stocks {
 
     await db.query("UPDATE tickers SET total_outstanding_shares = ? WHERE ticker = ?", [total_outstanding_shares, ticker]);
 
-    this.client.emitter.emit("totalOutstandingSharesUpdated", ticker.toUpperCase(), ticker_details.total_outstanding_shares, total_outstanding_shares);
+    this.client.emitter.emit("totalOutstandingSharesUpdated", ticker, ticker_details.total_outstanding_shares, total_outstanding_shares);
   }
 
   /**

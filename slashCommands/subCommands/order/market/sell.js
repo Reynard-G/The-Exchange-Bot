@@ -4,7 +4,7 @@ const Decimal = require("decimal.js-light");
 module.exports = {
   name: "sell",
   run: async (client, interaction) => {
-    const ticker = interaction.options.getString("ticker");
+    const ticker = interaction.options.getString("ticker").toUpperCase();
     const amount = interaction.options.getInteger("amount");
 
     const order_type_details = {
@@ -17,9 +17,9 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setTitle("Market Sell Order")
-      .setDescription(`You've placed a market sell order to sell shares of **${ticker.toUpperCase()}**.`)
+      .setDescription(`You've placed a market sell order to sell shares of **${ticker}**.`)
       .addFields(
-        { name: "Ticker", value: ticker.toUpperCase(), inline: true },
+        { name: "Ticker", value: ticker, inline: true },
         { name: "Share(s)", value: amount.toString(), inline: true },
         { name: "Price Per Share", value: client.utils.formatCurrency(share_price), inline: true },
         { name: "Total", value: client.utils.formatCurrency(new Decimal(share_price).mul(amount)), inline: true },

@@ -3,7 +3,7 @@ const { EmbedBuilder } = require("discord.js");
 module.exports = {
   name: "relist",
   run: async (client, interaction) => {
-    const ticker = interaction.options.getString("ticker");
+    const ticker = interaction.options.getString("ticker").toUpperCase();
 
     await client.stocks.relist(ticker);
 

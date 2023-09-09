@@ -3,7 +3,7 @@ const { EmbedBuilder } = require("discord.js");
 module.exports = {
   name: "info",
   run: async (client, interaction) => {
-    const ticker = interaction.options.getString("ticker");
+    const ticker = interaction.options.getString("ticker").toUpperCase();
     const stock = await client.stocks.ticker(ticker);
 
     const percentage_change = await client.stocks.dailyPercentageChange(ticker);
