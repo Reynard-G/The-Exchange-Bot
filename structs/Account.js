@@ -289,4 +289,14 @@ module.exports = class Account {
       [discordID]))[0].frozen;
     return frozen;
   }
+
+  /**
+   * Returns all user accounts
+   * 
+   * @returns {Array<Object>} - All user accounts
+   */
+  async accounts() {
+    const accounts = (await db.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM accounts"));
+    return accounts;
+  }
 }

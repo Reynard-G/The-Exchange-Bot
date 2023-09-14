@@ -9,6 +9,12 @@ module.exports = {
   cooldown: 3000,
   options: [
     {
+      name: "traders",
+      description: "View a list of traders.",
+      type: ApplicationCommandOptionType.Subcommand,
+      cooldown: 3000,
+    },
+    {
       name: "user",
       description: "Admin related commands for a user.",
       type: ApplicationCommandOptionType.SubcommandGroup,
