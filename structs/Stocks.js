@@ -503,31 +503,51 @@ module.exports = class Stocks {
    * Get the OHLC (open, high, low, close) prices for a ticker for a given date range
    * 
    * @param {String} ticker - The ticker to get the OHLC prices of 
-   * @param {Date} start_date - The start date of the date range
-   * @param {Date} end_date - The end date of the date range
+   * @param {Number} start_date - The start unix date of the date range
+   * @param {Number} end_date - The end unix date of the date range
+   * @param {Number} candlesticks - The amount of candlesticks to return
    * @returns {Object} The OHLC prices for the ticker for the given date range
    */
-  async getOHLC(ticker, start_date, end_date) {
+  async getOHLC(ticker, start_date, end_date, candlesticks) {
+
+    /**
+     * Increments:
+     * 1D: 24 Candlesticks (1 candlestick per hour)
+     * 3D: 24 Candlesticks (1 candlestick per 3 hours)
+     * 1W: 24 Candlesticks (1 candlestick per 7 hours)
+     * 1M: 24 Candlesticks (1 candlestick per 30 hours)
+     * 3M: 24 Candlesticks (1 candlestick per 90 hours)
+     * All: ? Candlesticks
+     */
+
     // Check if ticker exists
     const ticker_details = await this.ticker(ticker);
     if (!ticker_details) {
       throw new InvalidStockTickerError(ticker);
     }
 
-    // Get each day's open, close, high, low prices for the ticker for the given date range
+    // Get the open, close, high, low prices for the ticker for the given date range at the interval specified
     const prices = await db.query(`
       SELECT
-        MIN(price) AS low,
-        MAX(price) AS high,
-        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) >= ? LIMIT 1) AS open,
-        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) <= ? ORDER BY date DESC LIMIT 1) AS close
-      FROM tickers t
-      JOIN historical_ticker_prices p ON t.id = p.ticker_id
-      WHERE t.ticker = ?
-        AND UNIX_TIMESTAMP(date) >= ?
-        AND UNIX_TIMESTAMP(date) <= ?
-      GROUP BY DATE(date)
-      ORDER BY date ASC`,
+        t.ticker,
+        DATE_FORMAT(htp.date, '%Y-%m-%d %H:00:00') AS date_hourly,
+        MIN(htp.price) AS low,
+        MAX(htp.price) AS high,
+        SUBSTRING_INDEX(GROUP_CONCAT(htp.price ORDER BY htp.date), ',', 1) AS open,
+        SUBSTRING_INDEX(GROUP_CONCAT(htp.price ORDER BY htp.date DESC), ',', 1) AS close
+      FROM
+        historical_ticker_prices htp
+      JOIN
+        tickers t ON htp.ticker_id = t.id
+      WHERE
+        t.ticker = "OVO"
+        AND UNIX_TIMESTAMP(htp.date) BETWEEN 1693526400 AND 1694548560
+        AND (TIMESTAMPDIFF(HOUR, '2023-09-01 00:00:00', htp.date) MOD 3) = 0
+      GROUP BY
+        t.ticker,
+        TIMESTAMPDIFF(HOUR, '2023-09-01 00:00:00', htp.date)
+      ORDER BY
+        DATE_FORMAT(htp.date, '%Y-%m-%d %H:00:00');`,
       [start_date, end_date, ticker, start_date, end_date]
     );
 
