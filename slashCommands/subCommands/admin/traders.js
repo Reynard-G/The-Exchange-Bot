@@ -15,6 +15,8 @@ module.exports = {
       };
     }));
 
+    const totalBalance = traders.reduce((acc, trader) => acc + trader.balance, 0);
+
     const pages = [];
     for (let i = 0; i < traders.length; i += 5) {
       const page = new EmbedBuilder()
@@ -35,6 +37,11 @@ module.exports = {
         });
       }
 
+      page.addFields({
+        name: "**Total Balance**",
+        value: `**${client.utils.formatCurrency(totalBalance)}**`
+      });
+      
       pages.push(page);
     }
 
