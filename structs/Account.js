@@ -76,7 +76,7 @@ module.exports = class Account {
       LEFT JOIN (
           SELECT 
               account_id,
-              SUM(amount) AS total_buy_amount
+              SUM(remaining_amount * price_per_share) AS total_buy_amount
           FROM orders
           WHERE order_transaction_type = 'BUY'
           AND active = 1
