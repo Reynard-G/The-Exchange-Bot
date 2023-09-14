@@ -508,7 +508,7 @@ module.exports = class Stocks {
    * @param {Number} candlesticks - The amount of candlesticks to return
    * @returns {Object} The OHLC prices for the ticker for the given date range
    */
-  async getOHLC(ticker, start_date, end_date, candlesticks) {
+  async getOHLC(ticker, start_date, end_date) {
 
     /**
      * Increments:
@@ -527,10 +527,11 @@ module.exports = class Stocks {
     }
 
     // Get the open, close, high, low prices for the ticker for the given date range at the interval specified
+    const stringDate = DateTime.fromSeconds(start_date).toFormat("yyyy-MM-dd HH:00:00");
     const prices = await db.query(`
       SELECT
         t.ticker,
-        DATE_FORMAT(htp.date, '%Y-%m-%d %H:00:00') AS date_hourly,
+        DATE_FORMAT(htp.date, '%Y-%m-%d %H:00:00') AS date,
         MIN(htp.price) AS low,
         MAX(htp.price) AS high,
         SUBSTRING_INDEX(GROUP_CONCAT(htp.price ORDER BY htp.date), ',', 1) AS open,
@@ -540,15 +541,15 @@ module.exports = class Stocks {
       JOIN
         tickers t ON htp.ticker_id = t.id
       WHERE
-        t.ticker = "OVO"
-        AND UNIX_TIMESTAMP(htp.date) BETWEEN 1693526400 AND 1694548560
-        AND (TIMESTAMPDIFF(HOUR, '2023-09-01 00:00:00', htp.date) MOD 3) = 0
+        t.ticker = ?
+        AND UNIX_TIMESTAMP(htp.date) BETWEEN ? AND ?
+        AND (TIMESTAMPDIFF(HOUR, ?, htp.date) MOD ?) = 0
       GROUP BY
         t.ticker,
-        TIMESTAMPDIFF(HOUR, '2023-09-01 00:00:00', htp.date)
+        TIMESTAMPDIFF(HOUR, ?, htp.date)
       ORDER BY
         DATE_FORMAT(htp.date, '%Y-%m-%d %H:00:00');`,
-      [start_date, end_date, ticker, start_date, end_date]
+      [ticker, start_date, end_date, stringDate, /* 1 */, stringDate]
     );
 
     return prices[0];
