@@ -5,6 +5,7 @@ module.exports = {
   name: "transactions",
   description: "View your transaction history.",
   cooldown: 3000,
+  dm_permission: false,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
     const transactions = await client.account.transactions(interaction.user.id);

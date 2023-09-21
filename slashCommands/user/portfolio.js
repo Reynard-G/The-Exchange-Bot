@@ -4,6 +4,7 @@ module.exports = {
   name: "portfolio",
   description: "View your portfolio.",
   cooldown: 3000,
+  dm_permission: false,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
     const portfolio = await client.account.portfolio(interaction.user.id);

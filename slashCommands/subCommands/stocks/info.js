@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 module.exports = {
   name: "info",
@@ -21,12 +21,24 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() });
 
+    const hasExchangePlus = await client.account.hasExchangePlus(interaction.user.id);
+    const buttons = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId("stock:charts")
+          .setLabel("Charts")
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji("📈")
+          .setDisabled(!hasExchangePlus),
+      );
+
     // If the stock does not have an image, do not add it to the embed.
     if (stock.image) {
       embed.setThumbnail(`attachment://${stock.ticker}.png`);
 
       return interaction.reply({
         embeds: [embed],
+        components: [buttons],
         files: [{
           name: `${stock.ticker}.png`,
           attachment: stock.image
@@ -36,6 +48,7 @@ module.exports = {
     } else {
       return interaction.reply({
         embeds: [embed],
+        components: [buttons],
         ephemeral: true
       });
     }

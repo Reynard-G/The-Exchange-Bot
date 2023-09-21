@@ -244,6 +244,7 @@ module.exports = class Stocks {
    */
   async price(ticker) {
     const price = (await db.query("SELECT price FROM tickers WHERE ticker = ?", [ticker]))[0].price;
+
     return price;
   }
 
@@ -254,6 +255,7 @@ module.exports = class Stocks {
    */
   async companies() {
     const companies = await db.query("SELECT ticker, company_name, frozen, delisted FROM tickers");
+
     return companies;
   }
 
@@ -265,6 +267,7 @@ module.exports = class Stocks {
    */
   async isFrozen(ticker) {
     const frozen = (await db.query("SELECT frozen FROM tickers WHERE ticker = ?", [ticker]))[0].frozen;
+
     return frozen === 1;
   }
 
@@ -276,6 +279,7 @@ module.exports = class Stocks {
    */
   async isDelisted(ticker) {
     const delisted = (await db.query("SELECT delisted FROM tickers WHERE ticker = ?", [ticker]))[0].delisted;
+
     return delisted === 1;
   }
 
@@ -500,26 +504,14 @@ module.exports = class Stocks {
   }
 
   /**
-   * Get the OHLC (open, high, low, close) prices for a ticker for a given date range
+   * Get the tick data for a ticker using a given date range
    * 
    * @param {String} ticker - The ticker to get the OHLC prices of 
    * @param {Number} start_date - The start unix date of the date range
    * @param {Number} end_date - The end unix date of the date range
-   * @param {Number} candlesticks - The amount of candlesticks to return
-   * @returns {Object} The OHLC prices for the ticker for the given date range
+   * @returns {Object} The tick data for the ticker using the given date range
    */
-  async getOHLC(ticker, start_date, end_date) {
-
-    /**
-     * Increments:
-     * 1D: 24 Candlesticks (1 candlestick per hour)
-     * 3D: 24 Candlesticks (1 candlestick per 3 hours)
-     * 1W: 24 Candlesticks (1 candlestick per 7 hours)
-     * 1M: 24 Candlesticks (1 candlestick per 30 hours)
-     * 3M: 24 Candlesticks (1 candlestick per 90 hours)
-     * All: ? Candlesticks
-     */
-
+  async getTickData(ticker, start_date, end_date) {
     // Check if ticker exists
     const ticker_details = await this.ticker(ticker);
     if (!ticker_details) {
@@ -527,15 +519,13 @@ module.exports = class Stocks {
     }
 
     // Get the open, close, high, low prices for the ticker for the given date range at the interval specified
-    const stringDate = DateTime.fromSeconds(start_date).toFormat("yyyy-MM-dd HH:00:00");
-    const prices = await db.query(`
+    const stringStartDate = DateTime.fromSeconds(start_date).toFormat("yyyy-MM-dd HH:00:00");
+    const stringEndDate = DateTime.fromSeconds(end_date).toFormat("yyyy-MM-dd HH:00:00");
+    const data = await db.query(`
       SELECT
         t.ticker,
-        DATE_FORMAT(htp.date, '%Y-%m-%d %H:00:00') AS date,
-        MIN(htp.price) AS low,
-        MAX(htp.price) AS high,
-        SUBSTRING_INDEX(GROUP_CONCAT(htp.price ORDER BY htp.date), ',', 1) AS open,
-        SUBSTRING_INDEX(GROUP_CONCAT(htp.price ORDER BY htp.date DESC), ',', 1) AS close
+        UNIX_TIMESTAMP(htp.date) AS date,
+        htp.price
       FROM
         historical_ticker_prices htp
       JOIN
@@ -543,16 +533,19 @@ module.exports = class Stocks {
       WHERE
         t.ticker = ?
         AND UNIX_TIMESTAMP(htp.date) BETWEEN ? AND ?
-        AND (TIMESTAMPDIFF(HOUR, ?, htp.date) MOD ?) = 0
       GROUP BY
         t.ticker,
-        TIMESTAMPDIFF(HOUR, ?, htp.date)
-      ORDER BY
-        DATE_FORMAT(htp.date, '%Y-%m-%d %H:00:00');`,
-      [ticker, start_date, end_date, stringDate, /* 1 */, stringDate]
+        htp.date`,
+      [ticker, start_date, end_date, stringStartDate, stringEndDate]
     );
 
-    return prices[0];
+    // Convert BigInt to Number
+    data.forEach(d => {
+      d.date = parseInt(d.date) * 1000;
+      d.price = parseFloat(d.price);
+    });
+
+    return data;
   }
 
   /**
@@ -576,6 +569,11 @@ module.exports = class Stocks {
       LIMIT 1`,
       [midnight_date, ticker]
     );
+
+    // If there is no price data for the ticker, return 0
+    if (prices.length === 0) {
+      return 0;
+    }
 
     const { open, current } = prices[0];
     const percentage_change = new Decimal(current).sub(open).div(open).mul(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toNumber();

@@ -1,5 +1,5 @@
 const db = require("../mysql.js");
-const { AlreadyRegisteredError } = require("./Errors.js");
+const { AlreadyRegisteredError, ConflictingError } = require("./Errors.js");
 
 module.exports = class Account {
   constructor(client) {
@@ -29,6 +29,7 @@ module.exports = class Account {
   async databaseID(discordID) {
     const id = (await db.query("SELECT id FROM accounts WHERE discord_id = ?",
       [discordID]));
+
     return id.length > 0 ? id[0].id : null;
   }
 
@@ -41,6 +42,7 @@ module.exports = class Account {
   async discordID(databaseID) {
     const id = (await db.query("SELECT discord_id FROM accounts WHERE id = ?",
       [databaseID]));
+
     return id.length > 0 ? id[0].discord_id : null;
   }
 
@@ -53,6 +55,7 @@ module.exports = class Account {
   async username(discordID) {
     const username = (await db.query("SELECT ign FROM accounts WHERE discord_id = ?",
       [discordID]));
+
     return username.length > 0 ? username[0].ign : null;
   }
 
@@ -87,8 +90,7 @@ module.exports = class Account {
     `,
       [accountID]);
 
-    const balance = result[0] ? result[0].balance : 0;
-    return balance;
+    return result[0] ? result[0].balance : 0;
   }
 
   /**
@@ -101,6 +103,7 @@ module.exports = class Account {
     const account_id = await this.databaseID(discord_id);
     const transactions = (await db.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM transactions WHERE account_id = ? ORDER BY created_at DESC",
       [account_id]));
+
     return transactions.length > 0 ? transactions : null;
   }
 
@@ -114,6 +117,7 @@ module.exports = class Account {
     const account_id = await this.databaseID(discord_id);
     const orders = (await db.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM orders WHERE account_id = ? AND active = 1 ORDER BY created_at DESC",
       [account_id]));
+
     return orders.length > 0 ? orders : null;
   }
 
@@ -126,6 +130,7 @@ module.exports = class Account {
   async order(orderID) {
     const order = (await db.query("SELECT * FROM orders WHERE id = ?",
       [orderID]));
+
     return order.length > 0 ? order[0] : null;
   }
 
@@ -201,6 +206,11 @@ module.exports = class Account {
    */
   async addShares(discordID, ticker, amount, note) {
     const accountID = await this.databaseID(discordID);
+
+    // Check if existing shares & shares to add are greater than total outstanding shares
+    const totalOutstandingShares = (await this.client.stocks.ticker(ticker)).total_outstanding_shares;
+    const existingShares = (await this.client.stocks.shareholders(ticker)).map((shareholder) => shareholder.shares).reduce((a, b) => Number(a) + Number(b), 0);
+    if (existingShares + amount > totalOutstandingShares) throw new ConflictingError("Failed to add more shares than amount supplied.");
 
     if (!note) note = `Admin added ${amount} shares of ${ticker} to ${accountID}`;
 
@@ -287,6 +297,7 @@ module.exports = class Account {
   async isFrozen(discordID) {
     const frozen = (await db.query("SELECT IF(frozen = 1, true, false) AS frozen FROM accounts WHERE discord_id = ?",
       [discordID]))[0].frozen;
+
     return frozen;
   }
 
@@ -297,6 +308,33 @@ module.exports = class Account {
    */
   async accounts() {
     const accounts = (await db.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM accounts"));
+
     return accounts;
   }
-}
+
+  /**
+   * Returns the role's name of a user
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @returns {String} - The role's name of the user
+   */
+  async role(discordID) {
+    const accountID = await this.databaseID(discordID);
+    const result = (await db.query("SELECT a.role, r.name FROM accounts a JOIN roles r ON a.role = r.id WHERE a.id = ?",
+      [accountID]))[0];
+
+    return result;
+  }
+
+  /**
+   * Check if a user has the Exchange+ role
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @returns {Boolean} - Whether or not the user has the Exchange+ role
+   */
+  async hasExchangePlus(discordID) {
+    const role = (await this.role(discordID)).name;
+
+    return role === "Exchange+" || role === "Admin";
+  }
+};

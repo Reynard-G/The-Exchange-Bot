@@ -4,6 +4,7 @@ module.exports = {
   name: "companies",
   description: "View all publicly traded companies.",
   cooldown: 3000,
+  dm_permission: false,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
     // Filter companies that have `delisted` set to 1
@@ -15,7 +16,7 @@ module.exports = {
       .setFields(
         companies.map(company => {
           return {
-            name: company.frozen === 1 ? `🧊 ${company.company_name}` : company.company_name,
+            name: company.frozen === 1 ? `🧊 ${company.ticker}` : company.ticker,
             value: company.company_name,
             inline: true
           };

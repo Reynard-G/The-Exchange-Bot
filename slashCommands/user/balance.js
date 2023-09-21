@@ -4,6 +4,7 @@ module.exports = {
   name: "balance",
   description: "View your balance.",
   cooldown: 3000,
+  dm_permission: false,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
     const balance = await client.account.balance(interaction.user.id);

@@ -4,6 +4,7 @@ module.exports = {
   name: "orders",
   description: "View your active orders.",
   cooldown: 3000,
+  dm_permission: false,
   type: ApplicationCommandType.ChatInput,
   run: async (client, interaction) => {
     const orders = await client.account.orders(interaction.user.id);
