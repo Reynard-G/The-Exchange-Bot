@@ -3,12 +3,12 @@ const { DateTime, Duration } = require("luxon");
 const QuickChart = require("quickchart-js");
 
 module.exports = {
-  id: "stock:charts:1w",
+  id: "stock:charts:3m",
   permissions: [],
   run: async (client, interaction) => {
     const ticker = interaction.message.embeds[0].fields[0].value;
-    const data = await client.stocks.getTickData(ticker, DateTime.utc().minus({ weeks: 1 }).toSeconds(), DateTime.utc().toSeconds());
-    const ohlc = client.utils.convertToOHLC(data, Duration.fromObject({ hours: 7 }).minus({ minutes: 1 }).as("milliseconds"));
+    const data = await client.stocks.getTickData(ticker, DateTime.utc().minus({ months: 3 }).toSeconds(), DateTime.utc().toSeconds());
+    const ohlc = client.utils.convertToOHLC(data, Duration.fromObject({ days: 3 }).minus({ minutes: 1 }).as("milliseconds"));
 
     const chart = new QuickChart();
     chart.setWidth(500);
@@ -46,7 +46,12 @@ module.exports = {
               callback: (label) => `${Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(label)}`
             },
           }
-        }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+        },
       }
     });
 
@@ -61,7 +66,7 @@ module.exports = {
       if (button.data.style === 2) button.setDisabled(false);
     });
 
-    intervalButtons.components[1].setDisabled(true);
+    intervalButtons.components[3].setDisabled(true);
 
     const embed = EmbedBuilder.from(interaction.message.embeds[0]);
     embed.setImage(`attachment://${ticker}.png`);
@@ -72,7 +77,7 @@ module.exports = {
       files: [{
         name: `${ticker}.png`,
         attachment: await chart.toBinary()
-      }]
+      }],
     });
   }
 };

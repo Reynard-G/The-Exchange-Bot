@@ -25,6 +25,12 @@ module.exports = {
     const buttons = new ActionRowBuilder()
       .addComponents(
         new ButtonBuilder()
+          .setCustomId("stock:stats")
+          .setLabel("Statistics")
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji("📊")
+          .setDisabled(!hasExchangePlus),
+        new ButtonBuilder()
           .setCustomId("stock:charts")
           .setLabel("Charts")
           .setStyle(ButtonStyle.Primary)

@@ -7,6 +7,8 @@ client.on("interactionCreate", async interaction => {
     const button = client.buttons.get(interaction.customId);
     if (!button) return;
 
+    client.logger.info(`${interaction.user.tag} (${interaction.user.id}) ${interaction.customId}`);
+
     try {
         if (button.permissions) {
             if (!interaction.memberPermissions.has(PermissionsBitField.resolve(button.permissions || []))) {
