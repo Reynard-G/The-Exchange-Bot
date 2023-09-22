@@ -164,6 +164,7 @@ module.exports = class Account {
       WHERE 
           t.account_id = ?
           AND t.ticker IS NOT NULL
+          AND t.active = 1
       GROUP BY 
           t.account_id, t.ticker
       HAVING
