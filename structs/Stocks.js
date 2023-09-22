@@ -438,7 +438,7 @@ module.exports = class Stocks {
 
     // Check if there is an active IPO order, if so, update the available shares
     const ipo_order = (await db.query("SELECT * FROM orders WHERE ticker = ? AND ipo = 1 AND active = 1", [ticker]))[0];
-    if (Object.keys(ipo_order).length > 0) {
+    if (ipo_order) {
       const already_bought_shares = ipo_order.fulfilled_amount;
       const new_available_shares = new Decimal(available_shares).sub(already_bought_shares).toNumber();
 
@@ -616,6 +616,7 @@ module.exports = class Stocks {
         account_id
       FROM transactions
       WHERE ticker = ?
+      AND active = 1
       GROUP BY account_id
       HAVING total_shares <> 0
       ORDER BY total_shares DESC`,

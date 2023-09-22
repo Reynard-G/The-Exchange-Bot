@@ -86,6 +86,7 @@ module.exports = class Account {
           GROUP BY account_id
       ) o ON t.account_id = o.account_id
       WHERE t.account_id = ?
+      AND active = 1
       GROUP BY t.account_id;
     `,
       [accountID]);
@@ -101,7 +102,7 @@ module.exports = class Account {
    */
   async transactions(discord_id) {
     const account_id = await this.databaseID(discord_id);
-    const transactions = (await db.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM transactions WHERE account_id = ? ORDER BY created_at DESC",
+    const transactions = (await db.query("SELECT *, UNIX_TIMESTAMP(created_at) AS created_at_unix FROM transactions WHERE account_id = ? AND active = 1 ORDER BY created_at DESC",
       [account_id]));
 
     return transactions.length > 0 ? transactions : null;
