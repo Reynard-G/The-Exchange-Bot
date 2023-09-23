@@ -248,6 +248,12 @@ module.exports = class Stocks {
     return price;
   }
 
+  async bookValue(ticker) {
+    const value = (await db.query("SELECT value FROM historical_ticker_value htv JOIN tickers t ON htv.ticker_id = t.id WHERE t.ticker = ? ORDER BY htv.date DESC LIMIT 1", [ticker]))[0].value;
+
+    return value || 0;
+  }
+
   /**
    * Get a list of all the tickers
    * 
