@@ -28,13 +28,13 @@ module.exports = {
           .setCustomId("stock:stats")
           .setLabel("Statistics")
           .setStyle(ButtonStyle.Primary)
-          .setEmoji("📊")
+          .setEmoji("<:stats:1154950205565829130>")
           .setDisabled(!hasExchangePlus),
         new ButtonBuilder()
           .setCustomId("stock:charts")
           .setLabel("Charts")
           .setStyle(ButtonStyle.Primary)
-          .setEmoji("📈")
+          .setEmoji("<:chart:1154943843083497532>")
           .setDisabled(!hasExchangePlus),
       );
 
