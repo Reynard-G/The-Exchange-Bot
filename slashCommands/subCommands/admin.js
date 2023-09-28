@@ -368,6 +368,28 @@ module.exports = {
             },
           ],
         },
+        {
+          name: "valuation",
+          description: "Set a stock's valuation.",
+          type: ApplicationCommandOptionType.Subcommand,
+          cooldown: 3000,
+          options: [
+            {
+              name: "ticker",
+              description: "The ticker of stock you want to set the valuation of.",
+              type: ApplicationCommandOptionType.String,
+              required: true,
+              max_length: 5,
+            },
+            {
+              name: "amount",
+              description: "The valuation you want to set.",
+              type: ApplicationCommandOptionType.Number,
+              required: true,
+              min_value: 0.0001,
+            },
+          ],
+        }
       ],
     },
     {
