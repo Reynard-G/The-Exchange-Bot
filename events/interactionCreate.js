@@ -8,20 +8,24 @@ const cooldown = new Collection();
 client.on("interactionCreate", async interaction => {
 	const slashCommand = client.slashCommands.get(interaction.commandName);
 
-	if (interaction.type === 4) {
-		if (slashCommand.autocomplete) {
-			const choices = [];
-			await slashCommand.autocomplete(interaction, choices);
-		}
-	}
 	if (!interaction.type === 2) return;
 	if (!slashCommand) return client.slashCommands.delete(interaction.commandName);
 
-	// If the command is a subcommand, get the subcommand
-	// If the command has a subcommand group, get the subcommand group aswell
 	const subCommand = interaction.options.getSubcommand(false);
 	const subCommandGroup = interaction.options.getSubcommandGroup(false);
 
+	if (interaction.isAutocomplete()) {
+		try {
+			const autocompleteCommand = interaction.client.subCommands.get(`${interaction.commandName} ${subCommandGroup} ${subCommand}`, subCommand);
+			
+			return await autocompleteCommand.autocomplete(client, interaction);
+		} catch (error) {
+			client.logger.error(error.stack);
+		}
+	}
+
+	// If the command is a subcommand, get the subcommand
+	// If the command has a subcommand group, get the subcommand group aswell
 	let subCommandGroupOption, subCommandOption;
 	if (subCommandGroup) {
 		subCommandGroupOption = client.subCommands.get(`${interaction.commandName} ${subCommandGroup} ${subCommand}`, subCommand);
@@ -32,7 +36,7 @@ client.on("interactionCreate", async interaction => {
 	// Logging
 	function printOptions(commandName = '', options) {
 		const result = [];
-	
+
 		function processOption(option) {
 			if (option.name && option.value) {
 				result.push(`${option.name}:${option.value}`);
@@ -41,7 +45,7 @@ client.on("interactionCreate", async interaction => {
 				option.options.forEach(processOption);
 			}
 		}
-	
+
 		if (Array.isArray(options) && options.length > 0) {
 			options.forEach(processOption);
 		}
@@ -248,6 +252,25 @@ client.on("interactionCreate", async interaction => {
 						new EmbedBuilder()
 							.setTitle("Conflicting Action")
 							.setDescription(`You've performed a conflicting action. Please look at the error message below for more information.`)
+							.addFields(
+								{
+									name: "Error",
+									value: error.message
+								}
+							)
+							.setColor("Red")
+							.setTimestamp()
+							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: client.user.avatarURL() })
+					],
+					ephemeral: true
+				});
+			} else if (error.name === "NoParametersError") {
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to perform an action without providing any parameters.`);
+				await interaction.reply({
+					embeds: [
+						new EmbedBuilder()
+							.setTitle("No Parameters")
+							.setDescription(`You've performed an action without providing any parameters. Please look at the error message below for more information.`)
 							.addFields(
 								{
 									name: "Error",

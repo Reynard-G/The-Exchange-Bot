@@ -1,20 +1,18 @@
 const { EmbedBuilder } = require("discord.js");
 
 module.exports = {
-  name: "total_outstanding_shares",
+  name: "valuation",
   run: async (client, interaction) => {
     const ticker = interaction.options.getString("ticker").toUpperCase();
-    const totalOutstandingShares = interaction.options.getInteger("amount");
+    const valuation = interaction.options.getInteger("amount");
 
-    const previousTotalOutstandingShares = (await client.stocks.ticker(ticker)).total_outstanding_shares;
-
-    await client.stocks.setTotalOutstandingShares(ticker, totalOutstandingShares);
+    await client.stocks.setValuation(ticker, valuation);
 
     const embed = new EmbedBuilder()
-      .setTitle("Total Outstanding Shares")
+      .setTitle("Valuation")
       .setFields(
         { name: "Ticker", value: `${ticker}` },
-        { name: "Total Outstanding Shares", value: `**${previousTotalOutstandingShares}** → **${totalOutstandingShares}**` },
+        { name: "Valuation", value: `**${valuation}**` },
       )
       .setColor("#BB8FCE")
       .setTimestamp()

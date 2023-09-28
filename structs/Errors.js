@@ -83,6 +83,14 @@ class ConflictingError extends Error {
   }
 }
 
+class NoParametersError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'NoParametersError';
+    this.message = message;
+  }
+}
+
 module.exports = {
   InvalidStockTickerError,
   FrozenStockError,
@@ -95,5 +103,6 @@ module.exports = {
   AlreadyRegisteredError,
   OrderNotFoundError,
   ImageTooLargeError,
-  ConflictingError
+  ConflictingError,
+  NoParametersError
 };

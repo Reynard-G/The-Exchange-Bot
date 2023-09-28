@@ -9,10 +9,7 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle(`${user.username}'s Balance`)
       .setFields(
-        {
-          name: "Balance:",
-          value: `${client.utils.formatCurrency(balance)}`
-        }
+        { name: "Balance:", value: `${client.utils.formatCurrency(balance)}` }
       )
       .setColor("#BB8FCE")
       .setTimestamp()

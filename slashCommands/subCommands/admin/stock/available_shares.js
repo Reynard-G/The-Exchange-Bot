@@ -7,20 +7,14 @@ module.exports = {
     const availableShares = interaction.options.getInteger("amount");
 
     const previousAvailableShares = (await client.stocks.ticker(ticker)).available_shares;
-    
+
     await client.stocks.setAvailableShares(ticker, availableShares);
 
     const embed = new EmbedBuilder()
       .setTitle("Available Shares")
       .setFields(
-        {
-          name: "Ticker",
-          value: `${ticker}`
-        },
-        {
-          name: "Available Shares",
-          value: `**${previousAvailableShares}** → **${availableShares}**`
-        },
+        { name: "Ticker", value: `${ticker}` },
+        { name: "Available Shares", value: `**${previousAvailableShares}** → **${availableShares}**` },
       )
       .setColor("#BB8FCE")
       .setTimestamp()

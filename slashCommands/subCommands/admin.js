@@ -554,5 +554,34 @@ module.exports = {
         },
       ],
     },
+    {
+      name: "roles",
+      description: "Admin related commands for roles.",
+      type: ApplicationCommandOptionType.SubcommandGroup,
+      cooldown: 3000,
+      options: [
+        {
+          name: "set",
+          description: "Set a user's role/permissions.",
+          type: ApplicationCommandOptionType.Subcommand,
+          cooldown: 3000,
+          options: [
+            {
+              name: "user",
+              description: "The user you want to set the role/permissions of.",
+              type: ApplicationCommandOptionType.User,
+              required: true,
+            },
+            {
+              name: "role",
+              description: "The role you want to set.",
+              type: ApplicationCommandOptionType.String,
+              required: true,
+              autocomplete: true,
+            }
+          ],
+        },
+      ],
+    },
   ],
 };

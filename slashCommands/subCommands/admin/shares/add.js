@@ -17,19 +17,12 @@ module.exports = {
       embed.setTitle("Error")
         .setDescription("That user is not registered.")
         .setColor("Red");
-    } else {
-      const isFrozen = await client.account.isFrozen(user.id);
-      if (isFrozen) {
-        embed.setTitle("Error")
-          .setDescription(`The user <@${user.id}> is currently frozen. Use \`/admin user unfreeze\` to unfreeze them.`)
-          .setColor("Red");
-      } else {
-        await client.account.addShares(user.id, ticker, amount, note);
-        embed.setTitle("Success")
-          .setDescription(`Successfully added **${amount}** shares of **${ticker}** to <@${user.id}>.`)
-          .setColor("Green");
-      }
     }
+
+    await client.account.addShares(user.id, ticker, amount, 0, note);
+    embed.setTitle("Success")
+      .setDescription(`Successfully added **${amount}** shares of **${ticker}** to <@${user.id}>.`)
+      .setColor("Green");
 
     return interaction.reply({
       embeds: [embed]

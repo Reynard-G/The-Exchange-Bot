@@ -21,7 +21,6 @@ const Utils = require('./structs/Utils.js');
 const Stocks = require('./structs/Stocks.js');
 const Account = require('./structs/Account.js');
 
-client.aliases = new Collection();
 client.slashCommands = new Collection();
 client.subCommands = new Collection();
 client.buttons = new Collection();

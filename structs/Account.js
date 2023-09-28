@@ -1,5 +1,11 @@
 const db = require("../mysql.js");
-const { AlreadyRegisteredError, ConflictingError } = require("./Errors.js");
+const {
+  AlreadyRegisteredError,
+  InsufficientFundsError,
+  FrozenUserError,
+  FrozenStockError,
+  ConflictingError
+} = require("./Errors.js");
 
 module.exports = class Account {
   constructor(client) {
@@ -206,7 +212,7 @@ module.exports = class Account {
    * @param {Number} amount - The amount of shares to add
    * @param {String} note - The note to add to the transaction
    */
-  async addShares(discordID, ticker, amount, note) {
+  async addShares(discordID, ticker, amount, fee, note) {
     const accountID = await this.databaseID(discordID);
 
     // Check if existing shares & shares to add are greater than total outstanding shares
@@ -216,8 +222,16 @@ module.exports = class Account {
 
     if (!note) note = `Admin added ${amount} shares of ${ticker} to ${accountID}`;
 
-    await db.query("INSERT INTO transactions (account_id, ticker, ticker_amount, ticker_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?, ?)",
-      [accountID, ticker, amount, "CR", note, 1]);
+    // Check if the user is frozen
+    const isUserFrozen = await this.isFrozen(discordID);
+    if (isUserFrozen) throw new FrozenUserError(discordID);
+
+    // Check if ticker is frozen
+    const isTickerFrozen = await this.client.stocks.isFrozen(ticker);
+    if (isTickerFrozen) throw new FrozenStockError(ticker);
+
+    await db.query("INSERT INTO transactions (account_id, fee, ticker, ticker_amount, ticker_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [accountID, fee, ticker, amount, "CR", note, 1]);
 
     this.client.emitter.emit("sharesAdded", discordID, ticker, amount, note);
   }
@@ -230,13 +244,21 @@ module.exports = class Account {
    * @param {Number} amount - The amount of shares to remove
    * @param {String} note - The note to add to the transaction
    */
-  async removeShares(discordID, ticker, amount, note) {
+  async removeShares(discordID, ticker, amount, fee, note) {
     const accountID = await this.databaseID(discordID);
 
     if (!note) note = `Admin removed ${amount} shares of ${ticker} from ${accountID}`;
 
-    await db.query("INSERT INTO transactions (account_id, ticker, ticker_amount, ticker_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?, ?)",
-      [accountID, ticker, amount, "DR", note, 1]);
+    // Check if the user is frozen
+    const isUserFrozen = await this.isFrozen(discordID);
+    if (isUserFrozen) throw new FrozenUserError(discordID);
+
+    // Check if ticker is frozen
+    const isTickerFrozen = await this.client.stocks.isFrozen(ticker);
+    if (isTickerFrozen) throw new FrozenStockError(ticker);
+
+    await db.query("INSERT INTO transactions (account_id, fee, ticker, ticker_amount, ticker_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [accountID, fee, ticker, amount, "DR", note, 1]);
 
     this.client.emitter.emit("sharesRemoved", discordID, ticker, amount, note);
   }
@@ -248,13 +270,17 @@ module.exports = class Account {
    * @param {Number} amount - The amount of balance to add
    * @param {String} note - The note to add to the transaction
    */
-  async addBalance(discordID, amount, note) {
+  async addBalance(discordID, amount, fee, note) {
     const accountID = await this.databaseID(discordID);
 
     if (!note) note = `Admin added ${this.client.utils.formatCurrency(amount)} to ${accountID}`;
 
-    await db.query("INSERT INTO transactions (account_id, amount, amount_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?)",
-      [accountID, amount, "CR", note, 1]);
+    // Check if the user is frozen
+    const isFrozen = await this.isFrozen(discordID);
+    if (isFrozen) throw new FrozenUserError(discordID);
+
+    await db.query("INSERT INTO transactions (account_id, amount, fee, amount_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?, ?)",
+      [accountID, amount, fee, "CR", note, 1]);
 
     this.client.emitter.emit("balanceAdded", discordID, amount, note);
   }
@@ -266,15 +292,66 @@ module.exports = class Account {
    * @param {Number} amount - The amount of balance to remove
    * @param {String} note - The note to add to the transaction
    */
-  async removeBalance(discordID, amount, note) {
+  async removeBalance(discordID, amount, fee, note) {
     const accountID = await this.databaseID(discordID);
 
     if (!note) note = `Admin removed ${this.client.utils.formatCurrency(amount)} from ${accountID}`;
 
-    await db.query("INSERT INTO transactions (account_id, amount, amount_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?)",
-      [accountID, amount, "DR", note, 1]);
+    // Check if the user is frozen
+    const isFrozen = await this.isFrozen(discordID);
+    if (isFrozen) throw new FrozenUserError(discordID);
+
+    await db.query("INSERT INTO transactions (account_id, amount, fee, amount_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?, ?)",
+      [accountID, amount, fee, "DR", note, 1]);
 
     this.client.emitter.emit("balanceRemoved", discordID, amount, note);
+  }
+
+  /**
+   * Transfer money from one user to another
+   * 
+   * @param {Number} fromDiscordID
+   * @param {Number} toDiscordID
+   * @param {Number} amount
+   * @param {String} note
+   */
+  async transferMoney(fromDiscordID, toDiscordID, amount) {
+    if (fromDiscordID === toDiscordID) throw new ConflictingError("Unable to transfer balance to yourself.");
+
+    // Check if the user has enough balance to transfer
+    const balance = await this.balance(fromDiscordID);
+    const feePercentage = process.env.TRANSFER_MONEY_FEE_PERCENTAGE;
+    const fee = amount * feePercentage;
+    const total = amount + fee;
+
+    if (balance < total) throw new InsufficientFundsError(fromDiscordID);
+
+    await this.removeBalance(fromDiscordID, amount, amount * fee, `${this.client.utils.formatCurrency(amount)} transferred to ${toDiscordID}`);
+    await this.addBalance(toDiscordID, amount, 0, `${this.client.utils.formatCurrency(amount)} transferred from ${fromDiscordID}`);
+  }
+
+  /**
+   * Transfer shares from one user to another
+   * 
+   * @param {Number} fromDiscordID
+   * @param {Number} toDiscordID
+   * @param {String} ticker
+   * @param {Number} amount
+   * @param {String} note
+   */
+  async transferShares(fromDiscordID, toDiscordID, ticker, amount) {
+    if (fromDiscordID === toDiscordID) throw new ConflictingError("Unable to transfer shares to yourself.");
+
+    // Check if the user has enough shares to transfer
+    const balance = await this.balance(fromDiscordID);
+    const value = (await this.client.stocks.ticker(ticker)).price * amount;
+    const feePercentage = process.env.TRANSFER_SHARES_FEE_PERCENTAGE;
+    const fee = value * feePercentage;
+
+    if (balance < fee) throw new InsufficientFundsError(fromDiscordID);
+
+    await this.removeShares(fromDiscordID, ticker, amount, fee, `Transferred ${amount} share(s) of ${ticker} to ${toDiscordID}`);
+    await this.addShares(toDiscordID, ticker, amount, 0, `Transferred ${amount} share(s) of ${ticker} from ${fromDiscordID}`);
   }
 
   /**
@@ -315,6 +392,18 @@ module.exports = class Account {
   }
 
   /**
+   * Returns all roles available to users
+   * 
+   * @returns {Array<Object>} - All roles available to users
+   */
+  async roles() {
+    const roles = (await db.query("SELECT * FROM roles"));
+
+    return roles;
+  }
+
+
+  /**
    * Returns the role's name of a user
    * 
    * @param {Number} discordID - The Discord ID of the user
@@ -326,6 +415,19 @@ module.exports = class Account {
       [accountID]))[0];
 
     return result;
+  }
+
+  /**
+   * Set the role of a user
+   * 
+   * @param {Number} discordID - The Discord ID of the user
+   * @param {Number} roleID - The ID of the role
+   */
+  async setRole(discordID, roleID) {
+    const accountID = await this.databaseID(discordID);
+    
+    await db.query("UPDATE accounts SET role = ? WHERE id = ?",
+      [roleID, accountID]);
   }
 
   /**

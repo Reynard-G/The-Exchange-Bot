@@ -27,10 +27,6 @@ module.exports = class Stocks {
    */
   async buy(discord_id, ticker, amount, order_type, order_type_details) {
     const stock = await this.ticker(ticker);
-    if (!stock) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     if (stock.frozen == 1) {
       throw new FrozenStockError(ticker);
     }
@@ -66,10 +62,6 @@ module.exports = class Stocks {
    */
   async sell(discord_id, ticker, amount, order_type, order_type_details) {
     const stock = await this.ticker(ticker);
-    if (!stock) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     if (stock.frozen == 1) {
       throw new FrozenStockError(ticker);
     }
@@ -199,6 +191,11 @@ module.exports = class Stocks {
       if (leftoverAmount.eq(0)) {
         break;
       }
+
+      const recipientOrderType = order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY";
+      const initiatorOrderType = order_type_details.order_transaction_type;
+
+      this.client.emitter.emit("orderMatched", account_id, original_account_id, current_order_amount.toNumber(), updated_remaining_amount.toNumber(), leftoverAmount.toNumber(), recipientOrderType, initiatorOrderType, price_per_share, ticker);
     }
 
     // Create a new order if there is any leftover amount, else create a empty order
@@ -249,7 +246,7 @@ module.exports = class Stocks {
   }
 
   async bookValue(ticker) {
-    const value = (await db.query("SELECT value FROM historical_ticker_value htv JOIN tickers t ON htv.ticker_id = t.id WHERE t.ticker = ? ORDER BY htv.date DESC LIMIT 1", [ticker]))[0].value;
+    const value = (await db.query("SELECT value FROM historical_ticker_value htv JOIN tickers t ON htv.ticker_id = t.id WHERE t.ticker = ? ORDER BY htv.date DESC LIMIT 1", [ticker]))[0]?.value;
 
     return value || 0;
   }
@@ -295,13 +292,8 @@ module.exports = class Stocks {
    * @param {String} ticker - The ticker to freeze
    */
   async freeze(ticker) {
-    // Check if ticker exists
-    const stock = await this.ticker(ticker);
-    if (!stock) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     // Check if ticker is already frozen
+    const stock = await this.ticker(ticker);
     if (stock.frozen === 1) {
       throw new ConflictingError("Stock is already frozen");
     }
@@ -318,13 +310,8 @@ module.exports = class Stocks {
    * @param {String} ticker - The ticker to unfreeze
    */
   async unfreeze(ticker) {
-    // Check if ticker exists
-    const stock = await this.ticker(ticker);
-    if (!stock) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     // Check if ticker is already unfrozen
+    const stock = await this.ticker(ticker);
     if (stock.frozen === 0) {
       throw new ConflictingError("Stock is already unfrozen");
     }
@@ -341,13 +328,8 @@ module.exports = class Stocks {
    * @param {String} ticker - The ticker to delist
    */
   async delist(ticker) {
-    // Check if ticker exists
-    const stock = await this.ticker(ticker);
-    if (!stock) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     // Check if ticker is already delisted
+    const stock = await this.ticker(ticker);
     if (stock.delisted === 1) {
       throw new ConflictingError("Stock is already delisted");
     }
@@ -364,13 +346,8 @@ module.exports = class Stocks {
    * @param {String} ticker - The ticker to relist
    */
   async relist(ticker) {
-    // Check if ticker exists
-    const stock = await this.ticker(ticker);
-    if (!stock) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     // Check if ticker is already relisted
+    const stock = await this.ticker(ticker);
     if (stock.delisted === 0) {
       throw new ConflictingError("Stock is already relisted");
     }
@@ -412,12 +389,6 @@ module.exports = class Stocks {
       throw new ImageTooLargeError();
     }
 
-    // Check if ticker exists
-    const ticker_details = await this.ticker(ticker);
-    if (!ticker_details) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     await db.query("UPDATE tickers SET image = ? WHERE ticker = ?", [imageBuffer, ticker]);
 
     this.client.emitter.emit("imageUpdated", ticker, imageBuffer);
@@ -436,28 +407,18 @@ module.exports = class Stocks {
       throw new InvalidSharesAmountError(available_shares);
     }
 
-    // Check if ticker exists
-    const ticker_details = await this.ticker(ticker);
-    if (!ticker_details) {
-      throw new InvalidStockTickerError(ticker);
+    const totalShares = available_shares + this.shareholders(ticker).reduce((total, shareholder) => total + shareholder.total_shares, 0);
+    if (available_shares > totalShares) {
+      throw new ConflictingError("Available shares & distributed shares cannot be more than outstanding shares");
     }
 
     // Check if there is an active IPO order, if so, update the available shares
     const ipo_order = (await db.query("SELECT * FROM orders WHERE ticker = ? AND ipo = 1 AND active = 1", [ticker]))[0];
-    if (ipo_order) {
-      const already_bought_shares = ipo_order.fulfilled_amount;
-      const new_available_shares = new Decimal(available_shares).sub(already_bought_shares).toNumber();
-
-      // If new_available_shares is less than 0, throw an error
-      if (new_available_shares < 0) {
-        throw new ConflictingError("Cannot set available shares to less than the amount of shares available for the IPO");
-      } else {
-        await db.query("UPDATE orders SET remaining_amount = ? WHERE id = ?", [new_available_shares, ipo_order.id]);
-      }
-    }
+    if (ipo_order) await db.query("UPDATE orders SET remaining_amount = ? WHERE id = ?", [available_shares, ipo_order.id]);
 
     await db.query("UPDATE tickers SET available_shares = ? WHERE ticker = ?", [available_shares, ticker]);
 
+    const ticker_details = await this.ticker(ticker);
     this.client.emitter.emit("availableSharesUpdated", ticker, ticker_details.available_shares, available_shares);
   }
 
@@ -474,14 +435,9 @@ module.exports = class Stocks {
       throw new InvalidSharesAmountError(outstanding_shares);
     }
 
-    // Check if ticker exists
-    const ticker_details = await this.ticker(ticker);
-    if (!ticker_details) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     await db.query("UPDATE tickers SET outstanding_shares = ? WHERE ticker = ?", [outstanding_shares, ticker]);
 
+    const ticker_details = await this.ticker(ticker);
     this.client.emitter.emit("outstandingSharesUpdated", ticker, ticker_details.outstanding_shares, outstanding_shares);
   }
 
@@ -498,14 +454,9 @@ module.exports = class Stocks {
       throw new InvalidSharesAmountError(total_outstanding_shares);
     }
 
-    // Check if ticker exists
-    const ticker_details = await this.ticker(ticker);
-    if (!ticker_details) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     await db.query("UPDATE tickers SET total_outstanding_shares = ? WHERE ticker = ?", [total_outstanding_shares, ticker]);
 
+    const ticker_details = await this.ticker(ticker);
     this.client.emitter.emit("totalOutstandingSharesUpdated", ticker, ticker_details.total_outstanding_shares, total_outstanding_shares);
   }
 
@@ -518,12 +469,6 @@ module.exports = class Stocks {
    * @returns {Object} The tick data for the ticker using the given date range
    */
   async getTickData(ticker, start_date, end_date) {
-    // Check if ticker exists
-    const ticker_details = await this.ticker(ticker);
-    if (!ticker_details) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     // Get the open, close, high, low prices for the ticker for the given date range at the interval specified
     const stringStartDate = DateTime.fromSeconds(start_date).toFormat("yyyy-MM-dd HH:00:00");
     const stringEndDate = DateTime.fromSeconds(end_date).toFormat("yyyy-MM-dd HH:00:00");
@@ -598,6 +543,16 @@ module.exports = class Stocks {
   }
 
   /**
+   * Set the valuation of a ticker
+   * 
+   * @param {String} ticker 
+   * @param {Number} valuation 
+   */
+  async setValuation(ticker, valuation) {
+    await db.query("INSERT INTO historical_ticker_value (ticker_id, value) VALUES ((SELECT id FROM tickers WHERE ticker = ?), ?)", [ticker, valuation]);
+  }
+
+  /**
    * Get the shareholders of a ticker
    * 
    * @param {String} ticker - The ticker to get the shareholders of
@@ -605,12 +560,6 @@ module.exports = class Stocks {
    * @returns {Array<Object>} An array of the shareholders of the ticker
    */
   async shareholders(ticker, exchange_discord_id) {
-    // Check if ticker exists
-    const ticker_details = await this.ticker(ticker);
-    if (!ticker_details) {
-      throw new InvalidStockTickerError(ticker);
-    }
-
     // Get shareholder through transactions, differentiate between CR and DR
     const shareholders = await db.query(`
       SELECT

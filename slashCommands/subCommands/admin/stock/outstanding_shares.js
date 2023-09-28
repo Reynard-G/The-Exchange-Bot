@@ -13,14 +13,8 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle("Outstanding Shares")
       .setFields(
-        {
-          name: "Ticker",
-          value: `${ticker}`
-        },
-        {
-          name: "Outstanding Shares",
-          value: `**${previousOutstandingShares}** → **${outstandingShares}**`
-        },
+        { name: "Ticker", value: `${ticker}` },
+        { name: "Outstanding Shares", value: `**${previousOutstandingShares}** → **${outstandingShares}**` },
       )
       .setColor("#BB8FCE")
       .setTimestamp()
