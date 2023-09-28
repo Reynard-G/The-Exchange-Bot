@@ -374,10 +374,10 @@ module.exports = class Account {
    * @returns {Boolean} - Whether or not the user is frozen
    */
   async isFrozen(discordID) {
-    const frozen = (await db.query("SELECT IF(frozen = 1, true, false) AS frozen FROM accounts WHERE discord_id = ?",
+    const frozen = (await db.query("SELECT frozen FROM accounts WHERE discord_id = ?",
       [discordID]))[0].frozen;
 
-    return frozen;
+    return frozen === 1 ? true : false;
   }
 
   /**
