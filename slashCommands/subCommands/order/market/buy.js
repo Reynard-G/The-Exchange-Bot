@@ -11,10 +11,9 @@ module.exports = {
       order_transaction_type: "BUY"
     };
 
-    const share_price = await client.stocks.price(ticker);
-
     await client.stocks.buy(interaction.user.id, ticker, amount, "MARKET", order_type_details);
 
+    const share_price = await client.stocks.price(ticker);
     const embed = new EmbedBuilder()
       .setTitle("Market Buy Order")
       .setDescription(`You've placed a market buy order to buy shares of **${ticker}**.`)
