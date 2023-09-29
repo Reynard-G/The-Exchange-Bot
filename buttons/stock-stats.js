@@ -27,7 +27,7 @@ module.exports = {
 
     // P/B Ratio
     const bookValue = await client.stocks.bookValue(ticker);
-    const pbRatio = bookValue === 0 ? "Unknown" : new Decimal(tickerData.price).div(bookValue).toNumber().toFixed(2);
+    const pbRatio = bookValue === 0 ? "Unknown" : new Decimal(marketCap).div(bookValue).toNumber().toFixed(2);
 
     const embed = new EmbedBuilder()
       .setTitle(`${ticker} Stock Stats`)
