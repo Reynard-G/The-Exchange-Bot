@@ -20,9 +20,10 @@ class FrozenUserError extends Error {
 }
 
 class InsufficientPermissionsError extends Error {
-  constructor(discordID) {
+  constructor(discordID, message) {
     super(`Insufficient permissions: ${discordID}`);
     this.name = 'InsufficientPermissionsError';
+    this.message = message;
   }
 }
 

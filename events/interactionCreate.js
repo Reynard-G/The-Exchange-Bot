@@ -148,6 +148,12 @@ client.on("interactionCreate", async interaction => {
 						new EmbedBuilder()
 							.setTitle("Insufficient Permissions")
 							.setDescription(`You don't have the required permissions to perform this action.`)
+							.addFields(
+								{
+									name: "Required Permissions",
+									value: error.message
+								}
+							)
 							.setColor("Red")
 							.setTimestamp()
 							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })

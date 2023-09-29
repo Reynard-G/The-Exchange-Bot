@@ -1,5 +1,5 @@
 const { EmbedBuilder, ApplicationCommandType, ApplicationCommandOptionType } = require("discord.js");
-const { NoParametersError } = require("../../structs/Errors.js");
+const { NoParametersError, InsufficientPermissionsError } = require("../../structs/Errors.js");
 
 module.exports = {
   name: "transfer",
@@ -38,6 +38,9 @@ module.exports = {
     const money_amount = interaction.options.getInteger("money_amount");
     const ticker = interaction.options.getString("ticker")?.toUpperCase();
     const shares_amount = interaction.options.getInteger("shares_amount");
+
+    const hasExchangePlus = await client.account.hasExchangePlus(interaction.user.id);
+    if (!hasExchangePlus) throw new InsufficientPermissionsError(interaction.user.id, "You must have Exchange+ to use this command.");
 
     if (!money_amount && (!ticker || !shares_amount)) {
       throw new NoParametersError("You must specify either a money amount or a ticker and shares amount.");

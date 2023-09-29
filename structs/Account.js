@@ -328,6 +328,8 @@ module.exports = class Account {
 
     await this.removeBalance(fromDiscordID, amount, amount * fee, `${this.client.utils.formatCurrency(amount)} transferred to ${toDiscordID}`);
     await this.addBalance(toDiscordID, amount, 0, `${this.client.utils.formatCurrency(amount)} transferred from ${fromDiscordID}`);
+
+    this.client.emitter.emit("transfer", fromDiscordID, toDiscordID, amount);
   }
 
   /**
@@ -352,6 +354,8 @@ module.exports = class Account {
 
     await this.removeShares(fromDiscordID, ticker, amount, fee, `Transferred ${amount} share(s) of ${ticker} to ${toDiscordID}`);
     await this.addShares(toDiscordID, ticker, amount, 0, `Transferred ${amount} share(s) of ${ticker} from ${fromDiscordID}`);
+
+    this.client.emitter.emit("transfer", fromDiscordID, toDiscordID, null, ticker, amount);
   }
 
   /**
