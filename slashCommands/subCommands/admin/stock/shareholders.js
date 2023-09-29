@@ -24,8 +24,7 @@ module.exports = {
         shareholders.map((shareholder) => {
           return {
             name: `${shareholder.username}`,
-            value: `${shareholder.shares} share(s)`,
-            inline: true,
+            value: `${shareholder.shares} share(s)`
           };
         })
       );
