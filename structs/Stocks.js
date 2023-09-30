@@ -469,7 +469,6 @@ module.exports = class Stocks {
    * @returns {Object} The tick data for the ticker using the given date range
    */
   async getTickData(ticker, start_date, end_date) {
-    // Get the open, close, high, low prices for the ticker for the given date range at the interval specified
     const stringStartDate = DateTime.fromSeconds(start_date).toFormat("yyyy-MM-dd HH:00:00");
     const stringEndDate = DateTime.fromSeconds(end_date).toFormat("yyyy-MM-dd HH:00:00");
     const data = await db.query(`
