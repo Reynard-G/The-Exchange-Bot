@@ -555,34 +555,24 @@ module.exports = class Stocks {
     const shareholders = await db.query(`
       SELECT
         SUM(CASE
-          WHEN ticker_transaction_type = "CR" THEN ticker_amount
-          WHEN ticker_transaction_type = "DR" THEN -ticker_amount
+          WHEN ticker_transaction_type = "CR" THEN t.ticker_amount
+          WHEN ticker_transaction_type = "DR" THEN -t.ticker_amount
           ELSE 0
-        END) AS total_shares,
-        account_id
-      FROM transactions
+        END) AS shares,
+        t.account_id,
+        a.ign AS username
+      FROM transactions t
+      JOIN
+        accounts a ON t.account_id = a.id
       WHERE ticker = ?
       AND active = 1
-      GROUP BY account_id
-      HAVING total_shares <> 0
-      ORDER BY total_shares DESC`,
-      [ticker]
+      GROUP BY username
+      HAVING shares <> 0
+      ORDER BY shares DESC`,
+      [ticker, exchange_discord_id]
     );
 
-    // Return without The Exchange's account
-    const exchange_account_id = await this.client.account.databaseID(exchange_discord_id);
-    const filtered_shareholders = shareholders.filter(shareholder => shareholder.account_id !== exchange_account_id);
-
-    // Get the usernames & discord ids of the shareholders
-    const promises = filtered_shareholders.map(async (shareholder) => {
-      const { account_id, total_shares } = shareholder;
-      const discord_id = await this.client.account.discordID(account_id);
-      const username = await this.client.account.username(discord_id);
-      return { discord_id, username, shares: total_shares };
-    });
-
-    const results = await Promise.all(promises);
-    return results;
+    return shareholders;
   }
 
   /**

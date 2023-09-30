@@ -22,7 +22,6 @@ module.exports = {
     if (!hasExchangePlus) throw new InsufficientPermissionsError(interaction.user.id, "You must have Exchange+ to use this command.");
 
     const shareholders = (await client.stocks.shareholders(ticker)).slice(0, 5);
-    if (shareholders.length === 0) throw new Error("No shareholders found.");
 
     const embed = new EmbedBuilder()
       .setTitle("Shareholders")
