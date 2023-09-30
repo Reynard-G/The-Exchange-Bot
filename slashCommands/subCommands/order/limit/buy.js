@@ -13,10 +13,9 @@ module.exports = {
       limit_price: max_price,
     };
 
-    const share_price = await client.stocks.price(ticker);
-
     await client.stocks.buy(interaction.user.id, ticker, amount, "LIMIT", order_type_details);
 
+    const share_price = await client.stocks.price(ticker);
     const embed = new EmbedBuilder()
       .setTitle("Limit Buy Order")
       .setDescription(`You've placed a limit buy order to buy shares of **${ticker}**.`)
