@@ -217,7 +217,7 @@ module.exports = class Account {
 
     // Check if existing shares & shares to add are greater than total outstanding shares
     const totalOutstandingShares = (await this.client.stocks.ticker(ticker)).total_outstanding_shares;
-    const existingShares = (await this.client.stocks.shareholders(ticker)).map((shareholder) => shareholder.shares).reduce((a, b) => Number(a) + Number(b), 0);
+    const existingShares = (await this.client.stocks.shareholders(ticker)).map((shareholder) => shareholder.shares).reduce((a, b) => a + b, 0);
     if (existingShares + amount > totalOutstandingShares) throw new ConflictingError("Failed to add more shares than amount supplied.");
 
     if (!note) note = `Admin added ${amount} shares of ${ticker} to ${accountID}`;

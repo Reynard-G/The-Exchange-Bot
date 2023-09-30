@@ -463,7 +463,7 @@ module.exports = class Stocks {
   /**
    * Get the tick data for a ticker using a given date range
    * 
-   * @param {String} ticker - The ticker to get the OHLC prices of 
+   * @param {String} ticker - The ticker to get the tick data of
    * @param {Number} start_date - The start unix date of the date range
    * @param {Number} end_date - The end unix date of the date range
    * @returns {Object} The tick data for the ticker using the given date range
@@ -475,26 +475,20 @@ module.exports = class Stocks {
     const data = await db.query(`
       SELECT
         t.ticker,
-        UNIX_TIMESTAMP(htp.date) AS date,
-        htp.price
+        UNIX_TIMESTAMP(td.date) * 1000 AS date,
+        td.price
       FROM
-        historical_ticker_prices htp
+        tick_data td
       JOIN
-        tickers t ON htp.ticker_id = t.id
+        tickers t ON td.ticker_id = t.id
       WHERE
         t.ticker = ?
-        AND UNIX_TIMESTAMP(htp.date) BETWEEN ? AND ?
+        AND UNIX_TIMESTAMP(td.date) BETWEEN ? AND ?
       GROUP BY
         t.ticker,
-        htp.date`,
+        td.date`,
       [ticker, start_date, end_date, stringStartDate, stringEndDate]
     );
-
-    // Convert BigInt to Number
-    data.forEach(d => {
-      d.date = parseInt(d.date) * 1000;
-      d.price = parseFloat(d.price);
-    });
 
     return data;
   }
@@ -506,19 +500,16 @@ module.exports = class Stocks {
    * @returns {Number} The daily percentage change of the ticker
    */
   async dailyPercentageChange(ticker) {
-    // Get the midnight date in EST timezone
-    const midnight_date = DateTime.now().setZone("America/New_York").startOf("day").toSeconds();
-
     const prices = await db.query(`
       SELECT 
-        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) >= ? LIMIT 1) AS open,
+        (SELECT price FROM tick_data WHERE ticker_id = t.id ORDER BY date DESC LIMIT 1) AS open,
         t.price AS current
       FROM tickers t
-      JOIN historical_ticker_prices p ON t.id = p.ticker_id
+      JOIN tick_data td ON t.id = td.ticker_id
       WHERE t.ticker = ?
-      ORDER BY p.date DESC
+      ORDER BY td.date DESC
       LIMIT 1`,
-      [midnight_date, ticker]
+      [ticker]
     );
 
     // If there is no price data for the ticker, return 0
