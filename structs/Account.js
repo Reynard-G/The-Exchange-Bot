@@ -270,7 +270,7 @@ module.exports = class Account {
    * @param {Number} amount - The amount of balance to add
    * @param {String} note - The note to add to the transaction
    */
-  async addBalance(discordID, amount, fee, note) {
+  async addBalance(discordID, amount, fee, note, hidden = true) {
     const accountID = await this.databaseID(discordID);
 
     if (!note) note = `Admin added ${this.client.utils.formatCurrency(amount)} to ${accountID}`;
@@ -280,7 +280,7 @@ module.exports = class Account {
     if (isFrozen) throw new FrozenUserError(discordID);
 
     await db.query("INSERT INTO transactions (account_id, amount, fee, amount_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?, ?)",
-      [accountID, amount, fee, "CR", note, 1]);
+      [accountID, amount, fee, "CR", note, hidden === true ? 1 : 0]);
 
     this.client.emitter.emit("balanceAdded", discordID, amount, note);
   }
@@ -292,7 +292,7 @@ module.exports = class Account {
    * @param {Number} amount - The amount of balance to remove
    * @param {String} note - The note to add to the transaction
    */
-  async removeBalance(discordID, amount, fee, note) {
+  async removeBalance(discordID, amount, fee, note, hidden = true) {
     const accountID = await this.databaseID(discordID);
 
     if (!note) note = `Admin removed ${this.client.utils.formatCurrency(amount)} from ${accountID}`;
@@ -302,7 +302,7 @@ module.exports = class Account {
     if (isFrozen) throw new FrozenUserError(discordID);
 
     await db.query("INSERT INTO transactions (account_id, amount, fee, amount_transaction_type, note, hidden) VALUES (?, ?, ?, ?, ?, ?)",
-      [accountID, amount, fee, "DR", note, 1]);
+      [accountID, amount, fee, "DR", note, hidden === true ? 1 : 0]);
 
     this.client.emitter.emit("balanceRemoved", discordID, amount, note);
   }
@@ -326,8 +326,8 @@ module.exports = class Account {
 
     if (balance < total) throw new InsufficientFundsError(fromDiscordID);
 
-    await this.removeBalance(fromDiscordID, amount, amount * fee, `${this.client.utils.formatCurrency(amount)} transferred to ${toDiscordID}`);
-    await this.addBalance(toDiscordID, amount, 0, `${this.client.utils.formatCurrency(amount)} transferred from ${fromDiscordID}`);
+    await this.removeBalance(fromDiscordID, amount, amount * fee, `${this.client.utils.formatCurrency(amount)} transferred to ${toDiscordID}`, false);
+    await this.addBalance(toDiscordID, amount, 0, `${this.client.utils.formatCurrency(amount)} transferred from ${fromDiscordID}`, false);
 
     this.client.emitter.emit("transfer", fromDiscordID, toDiscordID, amount);
   }
@@ -352,8 +352,8 @@ module.exports = class Account {
 
     if (balance < fee) throw new InsufficientFundsError(fromDiscordID);
 
-    await this.removeShares(fromDiscordID, ticker, amount, fee, `Transferred ${amount} share(s) of ${ticker} to ${toDiscordID}`);
-    await this.addShares(toDiscordID, ticker, amount, 0, `Transferred ${amount} share(s) of ${ticker} from ${fromDiscordID}`);
+    await this.removeShares(fromDiscordID, ticker, amount, fee, `Transferred ${amount} share(s) of ${ticker} to ${toDiscordID}`, false);
+    await this.addShares(toDiscordID, ticker, amount, 0, `Transferred ${amount} share(s) of ${ticker} from ${fromDiscordID}`, false);
 
     this.client.emitter.emit("transfer", fromDiscordID, toDiscordID, null, ticker, amount);
   }
