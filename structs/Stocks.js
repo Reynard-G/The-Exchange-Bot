@@ -499,16 +499,18 @@ module.exports = class Stocks {
    * @returns {Number} The daily percentage change of the ticker
    */
   async dailyPercentageChange(ticker) {
+    const midnight_date = DateTime.now().setZone("America/New_York").startOf("day").toSeconds();
+
     const prices = await db.query(`
       SELECT 
-        (SELECT price FROM tick_data WHERE ticker_id = t.id ORDER BY date DESC LIMIT 1) AS open,
+        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) >= ? LIMIT 1) AS open,
         t.price AS current
       FROM tickers t
-      JOIN tick_data td ON t.id = td.ticker_id
+      JOIN historical_ticker_prices p ON t.id = p.ticker_id
       WHERE t.ticker = ?
-      ORDER BY td.date DESC
+      ORDER BY p.date DESC
       LIMIT 1`,
-      [ticker]
+      [midnight_date, ticker]
     );
 
     // If there is no price data for the ticker, return 0

@@ -4,7 +4,7 @@ module.exports = {
   name: "valuation",
   run: async (client, interaction) => {
     const ticker = interaction.options.getString("ticker").toUpperCase();
-    const valuation = interaction.options.getInteger("amount");
+    const valuation = interaction.options.getNumber("amount");
 
     await client.stocks.setValuation(ticker, valuation);
 
