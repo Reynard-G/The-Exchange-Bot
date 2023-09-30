@@ -8,8 +8,8 @@ module.exports = {
 		// Disable buttons if ticker doesn't go back that far
 		const ticks = await client.stocks.getTickData(interaction.message.embeds[0].fields[0].value, 0, new Date().getTime());
 		const oldestTick = ticks[0];
-
-		const isOlderThan = (duration) => oldestTick.date > new Date().getTime() - duration.as("milliseconds");
+		console.log(interaction.message.embeds[0].fields[0].value, oldestTick);
+		const isOlderThan = (duration) => oldestTick.time > new Date().getTime() - duration.as("milliseconds");
 
 		const intervalButtons = new ActionRowBuilder()
 			.addComponents(

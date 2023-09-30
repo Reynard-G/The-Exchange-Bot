@@ -475,18 +475,18 @@ module.exports = class Stocks {
     const data = await db.query(`
       SELECT
         t.ticker,
-        UNIX_TIMESTAMP(td.date) * 1000 AS date,
-        td.price
+        UNIX_TIMESTAMP(htp.date) * 1000 AS time,
+        htp.price
       FROM
-        tick_data td
+        historical_ticker_prices htp
       JOIN
-        tickers t ON td.ticker_id = t.id
+        tickers t ON htp.ticker_id = t.id
       WHERE
         t.ticker = ?
-        AND UNIX_TIMESTAMP(td.date) BETWEEN ? AND ?
+        AND UNIX_TIMESTAMP(htp.date) BETWEEN ? AND ?
       GROUP BY
         t.ticker,
-        td.date`,
+        htp.date`,
       [ticker, start_date, end_date, stringStartDate, stringEndDate]
     );
 

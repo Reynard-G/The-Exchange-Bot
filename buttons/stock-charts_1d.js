@@ -8,7 +8,7 @@ module.exports = {
   run: async (client, interaction) => {
     const ticker = interaction.message.embeds[0].fields[0].value;
     const data = await client.stocks.getTickData(ticker, DateTime.utc().minus({ days: 1 }).toSeconds(), DateTime.utc().toSeconds());
-    const ohlc = client.utils.convertToOHLC(data, Duration.fromObject({ hours: 1 }).minus({ minutes: 1 }).as("milliseconds"));
+    const ohlc = client.utils.resampleTicksByTime(data, Duration.fromObject({ hours: 1 }).minus({ minutes: 1 }).as("seconds"));
 
     const chart = new QuickChart();
     chart.setWidth(500);

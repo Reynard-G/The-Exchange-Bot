@@ -10,7 +10,7 @@ module.exports = {
     const marketOpen = DateTime.fromObject({ hour: 0, minute: 0 }, { zone: "America/New_York" });
 
     const tickData = await client.stocks.getTickData(ticker, marketOpen.toSeconds(), DateTime.utc().toSeconds());
-    const ohlcData = client.utils.convertToOHLC(tickData, DateTime.fromObject({ day: 1 }).toMillis())[0];
+    const ohlcData = client.utils.resampleTicksByTime(tickData, DateTime.fromObject({ day: 1 }).toSeconds())[0];
 
     // Today's Open
     const open = client.utils.formatCurrency(ohlcData.o);
