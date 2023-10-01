@@ -326,7 +326,7 @@ module.exports = class Account {
 
     if (balance < total) throw new InsufficientFundsError(fromDiscordID);
 
-    await this.removeBalance(fromDiscordID, amount, amount * fee, `${this.client.utils.formatCurrency(amount)} transferred to ${toDiscordID}`, false);
+    await this.removeBalance(fromDiscordID, amount, fee, `${this.client.utils.formatCurrency(amount)} transferred to ${toDiscordID}`, false);
     await this.addBalance(toDiscordID, amount, 0, `${this.client.utils.formatCurrency(amount)} transferred from ${fromDiscordID}`, false);
 
     this.client.emitter.emit("transfer", fromDiscordID, toDiscordID, amount);
@@ -379,7 +379,7 @@ module.exports = class Account {
    */
   async isFrozen(discordID) {
     const frozen = (await db.query("SELECT frozen FROM accounts WHERE discord_id = ?",
-      [discordID]))[0].frozen;
+      [discordID]))[0]?.frozen;
 
     return frozen === 1 ? true : false;
   }

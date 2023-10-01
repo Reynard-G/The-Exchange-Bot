@@ -1,5 +1,9 @@
 const { EmbedBuilder, ApplicationCommandType, ApplicationCommandOptionType } = require("discord.js");
-const { NoParametersError, InsufficientPermissionsError } = require("../../structs/Errors.js");
+const {
+  NoParametersError,
+  InsufficientPermissionsError,
+  NotRegisteredError
+} = require("../../structs/Errors.js");
 
 module.exports = {
   name: "transfer",
@@ -41,6 +45,9 @@ module.exports = {
 
     const hasExchangePlus = await client.account.hasExchangePlus(interaction.user.id);
     if (!hasExchangePlus) throw new InsufficientPermissionsError(interaction.user.id, "You must have Exchange+ to use this command.");
+
+    const isRegistered = await client.account.isRegistered(user.id);
+    if (!isRegistered) throw new NotRegisteredError(user.id);
 
     if (!money_amount && (!ticker || !shares_amount)) {
       throw new NoParametersError("You must specify either a money amount or a ticker and shares amount.");

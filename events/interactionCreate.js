@@ -205,7 +205,7 @@ client.on("interactionCreate", async interaction => {
 					embeds: [
 						new EmbedBuilder()
 							.setTitle("Not Registered")
-							.setDescription(`You're not registered yet. Please open a brokerage account to use this command.`)
+							.setDescription(`The user is not registered yet. Please open a brokerage account to use this command.`)
 							.setColor("Red")
 							.setTimestamp()
 							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() })
