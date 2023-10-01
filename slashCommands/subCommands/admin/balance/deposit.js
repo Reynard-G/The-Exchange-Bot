@@ -17,7 +17,7 @@ module.exports = {
         .setColor("Red");
     }
 
-    await client.account.addBalance(user.id, amount, 0, `Deposited ${client.utils.formatCurrency(amount)} to ${user.id}'s account by ${interaction.user.tag}.`);
+    await client.account.addBalance(user.id, amount, 0, `Deposited ${client.utils.formatCurrency(amount)} to ${user.id}'s account by ${interaction.user.tag}.`, false);
     embed.setTitle("Success")
       .setDescription(`Successfully deposited **${client.utils.formatCurrency(amount)}** to <@${user.id}>'s account.`)
       .setColor("Green");

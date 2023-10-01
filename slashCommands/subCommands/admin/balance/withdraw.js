@@ -17,7 +17,7 @@ module.exports = {
         .setColor("Red");
     }
 
-    await client.account.removeBalance(user.id, amount, 0, `Withdrew ${client.utils.formatCurrency(amount)} from ${user.id}'s account by ${interaction.user.tag}.`);
+    await client.account.removeBalance(user.id, amount, 0, `Withdrew ${client.utils.formatCurrency(amount)} from ${user.id}'s account by ${interaction.user.tag}.`, false);
     embed.setTitle("Success")
       .setDescription(`Successfully withdrew **${client.utils.formatCurrency(amount)}** from <@${user.id}>'s account.`)
       .setColor("Green");
