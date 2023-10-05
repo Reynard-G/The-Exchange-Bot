@@ -132,10 +132,9 @@ module.exports = class Stocks {
     this.client.logger.info(discord_id, ticker, amount, price_per_share, order_type, order_type_details)
 
     for (const order of orders) {
-      const { id, account_id, remaining_amount, price_per_share, limit_price, ipo } = order;
-      var selectedPricePerShare = order_type_details.limit_price ? limit_price : price_per_share;
+      const { id, account_id, remaining_amount, price_per_share, ipo } = order;
       const current_order_amount = new Decimal(remaining_amount).gte(leftoverAmount) ? new Decimal(leftoverAmount) : new Decimal(remaining_amount);
-      const total_price = new Decimal(selectedPricePerShare).mul(current_order_amount).toNumber();
+      const total_price = new Decimal(price_per_share).mul(current_order_amount).toNumber();
       const order_fee = new Decimal(total_price).mul(process.env.ORDER_FEE_PERCENTAGE).toNumber();
       const updated_remaining_amount = new Decimal(remaining_amount).minus(current_order_amount);
 
@@ -156,10 +155,10 @@ module.exports = class Stocks {
       // If the order is a buy, include the fee in the transaction
       if (order_type_details.order_transaction_type === "BUY") {
         await db.query(transactionQuery,
-          [original_account_id, account_id, id, total_price, order_fee, ticker, current_order_amount.toNumber(), "DR", "CR", `Bought ${current_order_amount} shares of ${ticker} at $${selectedPricePerShare} per share`]
+          [original_account_id, account_id, id, total_price, order_fee, ticker, current_order_amount.toNumber(), "DR", "CR", `Bought ${current_order_amount} shares of ${ticker} at $${price_per_share} per share`]
         );
         await db.query(transactionQuery,
-          [account_id, original_account_id, id, total_price, 0, ticker, current_order_amount.toNumber(), "CR", "DR", `Sold ${current_order_amount} shares of ${ticker} at $${selectedPricePerShare} per share`]
+          [account_id, original_account_id, id, total_price, 0, ticker, current_order_amount.toNumber(), "CR", "DR", `Sold ${current_order_amount} shares of ${ticker} at $${price_per_share} per share`]
         );
 
         // Check if the matching order is an IPO order
@@ -173,10 +172,10 @@ module.exports = class Stocks {
         }
       } else {
         await db.query(transactionQuery,
-          [original_account_id, account_id, id, total_price, 0, ticker, current_order_amount.toNumber(), "CR", "DR", `Sold ${current_order_amount} shares of ${ticker} at $${selectedPricePerShare} per share`]
+          [original_account_id, account_id, id, total_price, 0, ticker, current_order_amount.toNumber(), "CR", "DR", `Sold ${current_order_amount} shares of ${ticker} at $${price_per_share} per share`]
         );
         await db.query(transactionQuery,
-          [account_id, original_account_id, id, total_price, order_fee, ticker, current_order_amount.toNumber(), "DR", "CR", `Bought ${current_order_amount} shares of ${ticker} at $${selectedPricePerShare} per share`]
+          [account_id, original_account_id, id, total_price, order_fee, ticker, current_order_amount.toNumber(), "DR", "CR", `Bought ${current_order_amount} shares of ${ticker} at $${price_per_share} per share`]
         );
       }
 
@@ -201,14 +200,14 @@ module.exports = class Stocks {
       const recipientOrderType = order_type_details.order_transaction_type === "BUY" ? "SELL" : "BUY";
       const initiatorOrderType = order_type_details.order_transaction_type;
 
-      this.client.emitter.emit("orderMatched", account_id, original_account_id, current_order_amount.toNumber(), updated_remaining_amount.toNumber(), leftoverAmount.toNumber(), recipientOrderType, initiatorOrderType, selectedPricePerShare, ticker);
+      this.client.emitter.emit("orderMatched", account_id, original_account_id, current_order_amount.toNumber(), updated_remaining_amount.toNumber(), leftoverAmount.toNumber(), recipientOrderType, initiatorOrderType, price_per_share, ticker);
     }
 
     // Create a new order if there is any leftover amount, else create a empty order
     await db.query(`
       INSERT INTO orders (account_id, ticker, amount, price_per_share, fulfilled_amount, remaining_amount, order_transaction_type, order_type, limit_price, active)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [original_account_id, ticker, new Decimal(selectedPricePerShare).mul(amount).toNumber(), selectedPricePerShare, new Decimal(amount).minus(leftoverAmount).toNumber(), leftoverAmount.toNumber(), order_type_details.order_transaction_type, order_type, order_type_details.limit_price, leftoverAmount.gt(0) ? 1 : 0]
+      [original_account_id, ticker, new Decimal(price_per_share).mul(amount).toNumber(), price_per_share, new Decimal(amount).minus(leftoverAmount).toNumber(), leftoverAmount.toNumber(), order_type_details.order_transaction_type, order_type, order_type_details.limit_price, leftoverAmount.gt(0) ? 1 : 0]
     );
 
     // Update the stock price
@@ -220,7 +219,7 @@ module.exports = class Stocks {
       [newStockPrice, ticker]
     );
 
-    this.client.logger.info(`Updated stock price from ${selectedPricePerShare} to ${newStockPrice} for ${ticker}`);
+    this.client.logger.info(`Updated stock price from ${price_per_share} to ${newStockPrice} for ${ticker}`);
   }
 
   /**

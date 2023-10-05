@@ -59,7 +59,7 @@ module.exports = {
         },
       ],
     },
-    {
+    /*{
       name: "limit",
       description: "Limit order related commands.",
       type: ApplicationCommandOptionType.SubcommandGroup,
@@ -124,6 +124,6 @@ module.exports = {
           ],
         },
       ],
-    },
+    },*/
   ],
 };
