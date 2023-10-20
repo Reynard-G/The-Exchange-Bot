@@ -506,7 +506,6 @@ module.exports = class Stocks {
   async dailyPercentageChange(ticker) {
     const midnight_date = DateTime.now().setZone("America/New_York").startOf("day").toSeconds();
 
-    console.log(midnight_date)
     const prices = await db.query(`
       SELECT 
         (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) >= ? LIMIT 1) AS open,
@@ -518,7 +517,6 @@ module.exports = class Stocks {
       LIMIT 1`,
       [midnight_date, ticker]
     );
-    console.log(prices)
 
     // If there is no price data for the ticker, return 0
     if (prices.length === 0) {
