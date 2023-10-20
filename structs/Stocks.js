@@ -508,22 +508,18 @@ module.exports = class Stocks {
 
     const prices = await db.query(`
       SELECT 
-        (SELECT price FROM historical_ticker_prices WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) >= ? LIMIT 1) AS open,
+        (SELECT price FROM tick_data WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) < ? ORDER BY date DESC LIMIT 1) AS open,
         t.price AS current
       FROM tickers t
-      JOIN historical_ticker_prices p ON t.id = p.ticker_id
+      JOIN tick_data td ON t.id = td.ticker_id
       WHERE t.ticker = ?
-      ORDER BY p.date DESC
+      ORDER BY td.date DESC
       LIMIT 1`,
       [midnight_date, ticker]
     );
 
     // If there is no price data for the ticker, return 0
     if (prices.length === 0) {
-      return 0;
-    }
-
-    if (prices[0].open === null) {
       return 0;
     }
 
