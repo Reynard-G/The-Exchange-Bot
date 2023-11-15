@@ -412,7 +412,7 @@ module.exports = class Stocks {
       throw new InvalidSharesAmountError(available_shares);
     }
 
-    const totalShares = available_shares + this.shareholders(ticker).reduce((total, shareholder) => total + shareholder.total_shares, 0);
+    const totalShares = available_shares + (await this.shareholders(ticker)).reduce((total, shareholder) => total + shareholder.shares, 0);
     if (available_shares > totalShares) {
       throw new ConflictingError("Available shares & distributed shares cannot be more than outstanding shares");
     }
@@ -554,7 +554,7 @@ module.exports = class Stocks {
    * 
    * @param {String} ticker - The ticker to get the shareholders of
    * @param {String} exchange_discord_id - The discord id of the exchange bot
-   * @returns {Array<Object>} An array of the shareholders of the ticker
+   * @returns {Promise<Array<Object>>} An array of the shareholders of the ticker
    */
   async shareholders(ticker, exchange_discord_id) {
     // Get shareholder through transactions, differentiate between CR and DR
