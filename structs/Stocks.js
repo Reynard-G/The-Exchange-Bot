@@ -226,7 +226,7 @@ module.exports = class Stocks {
    * Get all details of a specified ticker
    * 
    * @param {String} ticker - The ticker to get the details of
-   * @returns {Object} The ticker details 
+   * @returns {Promise<Object>} The details of the ticker
    */
   async ticker(ticker) {
     const stock = await db.query("SELECT * FROM tickers WHERE ticker = ?", [ticker]);
@@ -242,7 +242,7 @@ module.exports = class Stocks {
    * Get the price of a specified ticker
    * 
    * @param {String} ticker - The ticker to get the price of
-   * @returns {Number} The price of the ticker
+   * @returns {Promise<Number>} The price of the ticker
    */
   async price(ticker) {
     const price = (await db.query("SELECT price FROM tickers WHERE ticker = ?", [ticker]))[0].price;
@@ -250,6 +250,12 @@ module.exports = class Stocks {
     return price;
   }
 
+  /**
+   * Get the book value of a specified ticker
+   * 
+   * @param {String} ticker - The ticker to get the book value of
+   * @returns {Promise<Number>} The book value of the ticker
+   */
   async bookValue(ticker) {
     const value = (await db.query("SELECT value FROM historical_ticker_value htv JOIN tickers t ON htv.ticker_id = t.id WHERE t.ticker = ? ORDER BY htv.date DESC LIMIT 1", [ticker]))[0]?.value;
 
@@ -268,10 +274,19 @@ module.exports = class Stocks {
   }
 
   /**
+   * Check if a ticker is valid
+   */
+  async isValidTicker(ticker) {
+    const stock = await db.query("SELECT * FROM tickers WHERE ticker = ?", [ticker]);
+
+    return stock.length > 0;
+  }
+
+  /**
    * Check if a ticker is frozen
    * 
    * @param {String} ticker - The ticker to check
-   * @returns {Boolean} Whether the ticker is frozen or not
+   * @returns {Promise<Boolean>} Whether the ticker is frozen or not
    */
   async isFrozen(ticker) {
     const frozen = (await db.query("SELECT frozen FROM tickers WHERE ticker = ?", [ticker]))[0].frozen;
@@ -283,7 +298,7 @@ module.exports = class Stocks {
    * Check if a ticker is delisted
    * 
    * @param {String} ticker - The ticker to check
-   * @returns {Boolean} Whether the ticker is delisted or not
+   * @returns {Promise<Boolean>} Whether the ticker is delisted or not
    */
   async isDelisted(ticker) {
     const delisted = (await db.query("SELECT delisted FROM tickers WHERE ticker = ?", [ticker]))[0].delisted;
@@ -412,7 +427,7 @@ module.exports = class Stocks {
       throw new InvalidSharesAmountError(available_shares);
     }
 
-    const totalShares = available_shares + this.shareholders(ticker).reduce((total, shareholder) => total + shareholder.total_shares, 0);
+    const totalShares = available_shares + (await this.shareholders(ticker)).reduce((total, shareholder) => total + shareholder.shares, 0);
     if (available_shares > totalShares) {
       throw new ConflictingError("Available shares & distributed shares cannot be more than outstanding shares");
     }
@@ -471,7 +486,7 @@ module.exports = class Stocks {
    * @param {String} ticker - The ticker to get the tick data of
    * @param {Number} start_date - The start unix date of the date range
    * @param {Number} end_date - The end unix date of the date range
-   * @returns {Object} The tick data for the ticker using the given date range
+   * @returns {Promise<Array<Object>>} The tick data for the ticker using the given date range
    */
   async getTickData(ticker, start_date, end_date) {
     const stringStartDate = DateTime.fromSeconds(start_date).toFormat("yyyy-MM-dd HH:00:00");
@@ -501,30 +516,37 @@ module.exports = class Stocks {
    * Get the daily percentage change for a ticker
    * 
    * @param {String} ticker - The ticker to get the daily percentage change of
-   * @returns {Number} The daily percentage change of the ticker
+   * @returns {Promise<Number>} The daily percentage change of the ticker
    */
   async dailyPercentageChange(ticker) {
-    const midnight_date = DateTime.now().setZone("America/New_York").startOf("day").toSeconds();
+    // Get the midnight unix time of yesterday in New York
+    const midnight = DateTime.now().setZone("America/New_York").startOf("day").toSeconds();
 
     const prices = await db.query(`
       SELECT 
-        (SELECT price FROM tick_data WHERE ticker_id = t.id AND UNIX_TIMESTAMP(date) < ? ORDER BY date DESC LIMIT 1) AS open,
+        COALESCE((SELECT td.price 
+          FROM tick_data td 
+          WHERE td.ticker_id = t.id 
+            AND unix_timestamp(td.date) > ?
+          ORDER BY td.date ASC
+          LIMIT 1), t.price) AS open,
         t.price AS current
       FROM tickers t
-      JOIN tick_data td ON t.id = td.ticker_id
+      LEFT JOIN tick_data td ON t.id = td.ticker_id
       WHERE t.ticker = ?
-      ORDER BY td.date DESC
       LIMIT 1`,
-      [midnight_date, ticker]
+      [midnight, ticker]
     );
 
-    // If there is no price data for the ticker, return 0
-    if (prices.length === 0) {
-      return 0;
-    }
-
     const { open, current } = prices[0];
-    const percentage_change = new Decimal(current).sub(open).div(open).mul(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toNumber();
+
+    // If "open" is null, use the current ticker price as "open"
+    // This happens when there is no tick data for the ticker yet
+    // A situation like this would happen when a new ticker is created
+    const openPrice = open === null ? current : open;
+
+    // ((current - openPrice) / openPrice) * 100
+    const percentage_change = new Decimal(current).sub(openPrice).div(openPrice).mul(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toNumber();
 
     return percentage_change;
   }
@@ -553,10 +575,9 @@ module.exports = class Stocks {
    * Get the shareholders of a ticker
    * 
    * @param {String} ticker - The ticker to get the shareholders of
-   * @param {String} exchange_discord_id - The discord id of the exchange bot
-   * @returns {Array<Object>} An array of the shareholders of the ticker
+   * @returns {Promise<Array<Object>>} An array of the shareholders of the ticker
    */
-  async shareholders(ticker, exchange_discord_id) {
+  async shareholders(ticker) {
     // Get shareholder through transactions, differentiate between CR and DR
     const shareholders = await db.query(`
       SELECT
@@ -575,7 +596,7 @@ module.exports = class Stocks {
       GROUP BY username
       HAVING shares <> 0
       ORDER BY shares DESC`,
-      [ticker, exchange_discord_id]
+      [ticker]
     );
 
     return shareholders;
@@ -587,7 +608,7 @@ module.exports = class Stocks {
    * @param {Number} amount - The amount of shares bought/sold
    * @param {String} ticker - The ticker of the stock
    * @param {String} transaction_type - The type of transaction (BUY/SELL)
-   * @returns {Number} The updated price of the ticker
+   * @returns {Promise<Number>} The updated price of the ticker
    */
   async updatedPrice(amount, ticker, transaction_type) {
     const ticker_details = await this.ticker(ticker);
