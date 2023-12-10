@@ -69,12 +69,6 @@ module.exports = (client) => {
 				{ body: [] }
 			);
 
-			// Remove all guild slash commands
-			await rest.put(
-				Routes.applicationGuildCommands(CLIENT_ID, process.env.GUILD_ID),
-				{ body: [] }
-			);
-
 			// Register all slash commands
 			await rest.put(
 					Routes.applicationCommands(CLIENT_ID),
