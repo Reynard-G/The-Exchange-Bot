@@ -489,24 +489,22 @@ module.exports = class Stocks {
    * @returns {Promise<Array<Object>>} The tick data for the ticker using the given date range
    */
   async getTickData(ticker, start_date, end_date) {
-    const stringStartDate = DateTime.fromSeconds(start_date).toFormat("yyyy-MM-dd HH:00:00");
-    const stringEndDate = DateTime.fromSeconds(end_date).toFormat("yyyy-MM-dd HH:00:00");
     const data = await db.query(`
       SELECT
         t.ticker,
-        UNIX_TIMESTAMP(htp.date) * 1000 AS time,
-        htp.price
+        UNIX_TIMESTAMP(td.date) * 1000 AS time,
+        td.price
       FROM
-        historical_ticker_prices htp
+        tick_data td
       JOIN
-        tickers t ON htp.ticker_id = t.id
+        tickers t ON td.ticker_id = t.id
       WHERE
         t.ticker = ?
-        AND UNIX_TIMESTAMP(htp.date) BETWEEN ? AND ?
+        AND UNIX_TIMESTAMP(td.date) BETWEEN ? AND ?
       GROUP BY
         t.ticker,
-        htp.date`,
-      [ticker, start_date, end_date, stringStartDate, stringEndDate]
+        td.date`,
+      [ticker, start_date, end_date]
     );
 
     return data;

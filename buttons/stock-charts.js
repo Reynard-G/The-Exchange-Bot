@@ -5,6 +5,9 @@ module.exports = {
 	id: "stock:charts",
 	permissions: [],
 	run: async (client, interaction) => {
+		// Defer update in case it takes a while
+		await interaction.deferUpdate();
+
 		// Disable buttons if ticker doesn't go back that far
 		const ticks = await client.stocks.getTickData(interaction.message.embeds[0].fields[0].value, 0, new Date().getTime());
 		const oldestTick = ticks[0];
@@ -48,7 +51,7 @@ module.exports = {
 					.setDisabled(true),
 			);
 
-		return interaction.update({
+		return interaction.editReply({
 			components: [intervalButtons, infIntervalButton]
 		});
 	}

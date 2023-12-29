@@ -92,6 +92,14 @@ class NoParametersError extends Error {
   }
 }
 
+class NoDataError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'NoDataError';
+    this.message = message;
+  }
+}
+
 module.exports = {
   InvalidStockTickerError,
   FrozenStockError,
@@ -105,5 +113,6 @@ module.exports = {
   OrderNotFoundError,
   ImageTooLargeError,
   ConflictingError,
-  NoParametersError
+  NoParametersError,
+  NoDataError
 };

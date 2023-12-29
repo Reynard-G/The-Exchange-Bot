@@ -289,6 +289,25 @@ client.on("interactionCreate", async interaction => {
 					],
 					ephemeral: true
 				});
+			} else if (error.name === "NoDataError") {
+				client.logger.warn(`${interaction.user.tag} (${interaction.user.id}) tried to access data that doesn't exist.`);
+				await interaction.reply({
+					embeds: [
+						new EmbedBuilder()
+							.setTitle("No Data")
+							.setDescription(`The data you've requested does not exist. Please look at the error message below for more information.`)
+							.addFields(
+								{
+									name: "Error",
+									value: error.message
+								}
+							)
+							.setColor("Red")
+							.setTimestamp()
+							.setFooter({ text: "The Exchange  •  Invest in the future", iconURL: client.user.avatarURL() })
+					],
+					ephemeral: true
+				});
 			} else {
 				client.logger.error(error.stack);
 				await interaction.reply({

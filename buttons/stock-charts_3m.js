@@ -1,13 +1,20 @@
 const { EmbedBuilder, ActionRowBuilder } = require("discord.js");
 const { DateTime, Duration } = require("luxon");
 const QuickChart = require("quickchart-js");
+const { NoDataError } = require("../structs/Errors");
 
 module.exports = {
   id: "stock:charts:3m",
   permissions: [],
   run: async (client, interaction) => {
+    // Defer update in case it takes a while
+		await interaction.deferUpdate();
+
     const ticker = interaction.message.embeds[0].fields[0].value;
     const data = await client.stocks.getTickData(ticker, DateTime.utc().minus({ months: 3 }).toSeconds(), DateTime.utc().toSeconds());
+
+    if (data.length === 0) throw new NoDataError(`No historical data found in this timeframe for **${ticker}**.`);
+
     const ohlc = client.utils.resampleTicksByTime(data, Duration.fromObject({ days: 3 }).minus({ minutes: 1 }).as("seconds"));
 
     const chart = new QuickChart();
@@ -71,7 +78,7 @@ module.exports = {
     const embed = EmbedBuilder.from(interaction.message.embeds[0]);
     embed.setImage(`attachment://${ticker}.png`);
 
-    return interaction.update({
+    return interaction.editReply({
       embeds: [embed],
       components: [intervalButtons, infIntervalButton],
       files: [{

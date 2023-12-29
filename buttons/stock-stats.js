@@ -6,20 +6,23 @@ module.exports = {
   id: "stock:stats",
   permissions: [],
   run: async (client, interaction) => {
+    // Defer update in case it takes a while
+		await interaction.deferUpdate();
+
     const ticker = interaction.message.embeds[0].fields[0].value;
     const marketOpen = DateTime.fromObject({ hour: 0, minute: 0 }, { zone: "America/New_York" });
 
     const tickData = await client.stocks.getTickData(ticker, marketOpen.toSeconds(), DateTime.utc().toSeconds());
-    const ohlcData = client.utils.resampleTicksByTime(tickData, DateTime.fromObject({ day: 1 }).toSeconds())[0];
+    const ohlcData = tickData.length > 0 ? client.utils.resampleTicksByTime(tickData, DateTime.fromObject({ day: 1 }).toSeconds())[0] : null;
 
     // Today's Open
-    const open = client.utils.formatCurrency(ohlcData.o);
+    const open = ohlcData ? client.utils.formatCurrency(ohlcData.o) : "N/A";
 
     // Today's High
-    const high = client.utils.formatCurrency(ohlcData.h);
+    const high = ohlcData ? client.utils.formatCurrency(ohlcData.h) : "N/A";
 
     // Today's Low
-    const low = client.utils.formatCurrency(ohlcData.l);
+    const low = ohlcData ? client.utils.formatCurrency(ohlcData.l) : "N/A";
 
     // Market Cap
     const tickerData = (await client.stocks.ticker(ticker));
@@ -43,8 +46,10 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: "The Exchange  •  Invest in the future", iconURL: interaction.guild.iconURL() });
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [embed],
+      attachments: [],
+      components: [],
       ephemeral: true
     });
   }
