@@ -40,7 +40,8 @@ module.exports = class Stocks {
     // Check if account can afford the order
     const price_per_share = stock.price;
     const total_price = new Decimal(price_per_share).mul(amount);
-    const fee = new Decimal(total_price).mul(process.env.ORDER_FEE_PERCENTAGE).toNumber();
+    const fee_percentage = this.client.account.hasExchangePlus(discord_id) ? process.env.ORDER_FEE_PERCENTAGE_EXCHANGEPLUS : process.env.ORDER_FEE_PERCENTAGE;
+    const fee = new Decimal(total_price).mul(fee_percentage).toNumber();
     const balance = await this.client.account.balance(discord_id);
     if (balance < total_price.add(fee).toNumber()) {
       throw new InsufficientFundsError(discord_id, total_price, balance);
