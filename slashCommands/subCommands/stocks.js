@@ -18,7 +18,7 @@ module.exports = {
           description: "The ticker of the stock you want to get information about.",
           type: ApplicationCommandOptionType.String,
           required: true,
-          max_length: 5,
+          max_length: 10,
         },
       ],
     },

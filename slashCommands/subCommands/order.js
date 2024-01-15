@@ -24,7 +24,7 @@ module.exports = {
               description: "The ticker of the stock you want to buy.",
               type: ApplicationCommandOptionType.String,
               required: true,
-              max_length: 5,
+              max_length: 10,
             },
             {
               name: "amount",
@@ -46,7 +46,7 @@ module.exports = {
               description: "The ticker of the stock you want to sell.",
               type: ApplicationCommandOptionType.String,
               required: true,
-              max_length: 5,
+              max_length: 10,
             },
             {
               name: "amount",
@@ -76,7 +76,7 @@ module.exports = {
               description: "The ticker of the stock you want to buy.",
               type: ApplicationCommandOptionType.String,
               required: true,
-              max_length: 5,
+              max_length: 10,
             },
             {
               name: "amount",
@@ -105,7 +105,7 @@ module.exports = {
               description: "The ticker of the stock you want to sell.",
               type: ApplicationCommandOptionType.String,
               required: true,
-              max_length: 5,
+              max_length: 10,
             },
             {
               name: "amount",
